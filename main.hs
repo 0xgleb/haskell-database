@@ -1,7 +1,8 @@
 import Data.Maybe
-import System.IO
-import Control.Monad
 import Data.List
+import System.IO
+import System.Directory
+import Control.Monad
 
 data PolyType = PolyString String | PolyFloat Float | PolyInt Int | Invalid
 instance Show PolyType where
@@ -41,6 +42,39 @@ safeRead arr = (head arr, map (parse (head arr)) $ tail arr)
                     parse [] [] = []
                     parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
 
-main = withFile "test.csv" ReadWriteMode (\handle -> do
-           content <- hGetContents handle
-           putStrLn $ format $ safeRead $ map (split ',') $ init $ split '\n' content)
+toPath :: String -> String
+toPath name = "./databases/" ++ name ++ ".csv"
+
+workWithDatabase :: String -> IO ()
+workWithDatabase name = do
+    putStr (name ++ ":> ")
+    command <- getLine
+    case command of
+        "read" -> do
+            withFile (toPath name) ReadMode (\handle -> do
+                content <- hGetContents handle
+                putStrLn $ format $ safeRead $ map (split ',') $ init $ split '\n' content)
+            workWithDatabase name
+        "write" -> do
+            putStr "Enter some data: "
+            newData <- getLine
+            appendFile (toPath name) $ newData ++ "\n"
+            workWithDatabase name
+        "exit" -> putStrLn "Exiting..."
+        _      -> do
+            putStrLn "Invalid command!"
+            workWithDatabase name
+
+
+main = do
+    putStr "shell:> "
+    command <- getLine
+    case (head (split ' ' command)) of
+          "use" -> do
+              let arg = head $ tail $ split ' ' command
+              fileExist <- doesFileExist $ toPath arg
+              if fileExist then workWithDatabase arg
+                else putStrLn "Selected database doesn't exist!"
+              main
+          "exit" -> do
+              putStrLn "Exiting..."
