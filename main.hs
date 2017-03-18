@@ -5,7 +5,7 @@
 import Data.Maybe
 import System.IO
 import Control.Monad
-import Data.List (foldl')
+import Data.List
 
 split :: String -> [[String]]
 split = reverse . tail . (map reverse) . (map (split' ',' [""])) . (split' '\n' [""])
@@ -16,29 +16,34 @@ split = reverse . tail . (map reverse) . (map (split' ',' [""])) . (split' '\n' 
               | x == chr = split' chr ("":y:ys) xs
               | otherwise = split' chr ((y ++ [x]):ys) xs
 
-tuplemap :: (a -> b) -> (a, a, a) -> (b, b, b)
-tuplemap f (x1, x2, x3) = (f x1, f x2, f x3)
+data PolyType = PolyString String | PolyFloat Float | PolyInt Int | Invalid
+instance Show PolyType where
+  show (PolyString str) = str
+  show (PolyInt num) = show num
+  show (PolyFloat num) = show num
+  show Invalid = "Invalid"
 
-safeRead :: [[String]] -> [Maybe (Maybe a1, Maybe a2, Maybe a3)]
-safeRead = map (fmap (tuplemap maybeRead)) . map toTuple
-            where
-                toTuple [x1, x2, x3] = Just (x1, x2, x3)
-                toTuple _ = Nothing
-                maybeRead (str::Int) = case reads str [(Int,String)] of
-                                            [(x, "")] -> Just x
-                                            _         -> Nothing
-                maybeRead (str::String) = case reads str [(String,String)] of
-                                            [(x, "")] -> Just x
-                                            _         -> Nothing
+polyRead :: String -> String -> PolyType
+polyRead "Int" str = case reads str :: [(Int,String)] of
+                        [(x, "")] -> PolyInt x
+                        _         -> Invalid
+polyRead "String" str = case reads str :: [(String,String)] of
+                           [(x, "")] -> PolyString x
+                           _         -> Invalid
+polyRead "Float" str = case reads str :: [(Float,String)] of
+                           [(x, "")] -> PolyFloat x
+                           _         -> Invalid
+polyRead _ _ = Invalid
 
-recomposeFunctors :: Eq a => [Maybe (Maybe a, Maybe a, Maybe a)] -> Maybe [(a,a,a)]
-recomposeFunctors l
-  | filter getNothings l == [] = Just (map (\(Just (Just x1, Just x2, Just x3)) -> (x1,x2,x3)) l)
-  | otherwise = Nothing
-            where
-                getNothings (Just (Just _, Just _, Just _)) = True
-                getNothings _ = False
+safeRead :: [[String]] -> ([String], [[PolyType]])
+safeRead arr = (head arr, toTuples (head arr) $ tail arr)
+                where
+                    parse :: [String] -> [String] -> [PolyType]
+                    parse [] [] = []
+                    parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
+                    toTuples :: [String] -> [[String]] -> [[PolyType]]
+                    toTuples types arr = map (parse types) arr
 
-main = withFile "test.dat" ReadWriteMode (\handle -> do 
+main = withFile "test.csv" ReadWriteMode (\handle -> do
            content <- hGetContents handle
-           print $ recomposeFunctors . (safeRead) $ split content)
+           print $ safeRead $ split content)
