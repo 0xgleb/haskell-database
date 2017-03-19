@@ -5,6 +5,7 @@ import System.Directory
 import Control.Monad
 
 data PolyType = PolyString String | PolyFloat Float | PolyInt Int | Invalid
+              deriving (Eq)
 instance Show PolyType where
     show (PolyString str) = str
     show (PolyFloat int) = show int
@@ -36,14 +37,42 @@ split target = reverse . splitHelper target [[]]
                       | x == chr = splitHelper chr ([]:y:ys) xs
                       | otherwise = splitHelper chr ((y ++ [x]):ys) xs
 
+areTypes :: [String] -> Bool
+areTypes [] = True
+areTypes ("Int":xs) = areTypes xs
+areTypes ("Float":xs) = areTypes xs
+areTypes ("String":xs) = areTypes xs
+areTypes (_:xs) = False
+
+parse :: [String] -> [String] -> [PolyType]
+parse [] [] = []
+parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
+
 safeRead :: [[String]] -> ([String], [[PolyType]])
 safeRead arr = (head arr, map (parse (head arr)) $ tail arr)
-                where
-                    parse [] [] = []
-                    parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
+
+rm :: Eq a => a -> [a] -> [a]
+rm target = filter (/= target)
 
 toPath :: String -> String
-toPath name = "./databases/" ++ name ++ ".csv"
+toPath = ("./databases/" ++) . (++ ".csv")
+
+createDatabase :: String -> String -> IO ()
+createDatabase name types = appendFile (toPath name) $ types ++ "\n"
+
+readNewData :: String -> IO ()
+readNewData name = do
+    handle <- openFile (toPath name) ReadWriteMode
+    content <- hGetContents handle
+    let types = split ',' $ head $ lines content
+    putStrLn ("Types: " ++ (head $ lines content))
+    hClose handle
+    putStr "Enter new data: "
+    inputData <- getLine
+    let newData = split ',' inputData
+    if ([] == filter (== Invalid) (parse types newData))
+       then appendFile (toPath name) $ inputData ++ "\n"
+       else putStrLn "Invalid data"
 
 workWithDatabase :: String -> IO ()
 workWithDatabase name = do
@@ -53,12 +82,10 @@ workWithDatabase name = do
         "read" -> do
             withFile (toPath name) ReadMode (\handle -> do
                 content <- hGetContents handle
-                putStrLn $ format $ safeRead $ map (split ',') $ init $ split '\n' content)
+                putStrLn $ format $ safeRead $ map (split ',') $ lines content)
             workWithDatabase name
         "write" -> do
-            putStr "Enter some data: "
-            newData <- getLine
-            appendFile (toPath name) $ newData ++ "\n"
+            readNewData name
             workWithDatabase name
         "exit" -> putStrLn "Exiting..."
         _      -> do
@@ -70,6 +97,14 @@ main = do
     putStr "shell:> "
     command <- getLine
     case (head (split ' ' command)) of
+          "create" -> do
+              let args = tail $ split ' ' command
+              fileExist <- doesFileExist $ toPath $ head args
+              if fileExist then putStrLn "This database already exists!"
+                else if (areTypes (split ',' (rm ' ' (join (tail args)))))
+                  then createDatabase (head args) $ join $ tail args
+                  else putStrLn "Invalid types declaration!"
+              main
           "use" -> do
               let arg = head $ tail $ split ' ' command
               fileExist <- doesFileExist $ toPath arg
@@ -78,3 +113,6 @@ main = do
               main
           "exit" -> do
               putStrLn "Exiting..."
+          _      -> do
+              putStrLn "Invalid command!"
+              main
