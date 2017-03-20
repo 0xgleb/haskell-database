@@ -54,11 +54,12 @@ safeRead arr = (head arr, map (parse (head arr)) $ tail arr)
 rm :: Eq a => a -> [a] -> [a]
 rm target = filter (/= target)
 
-toPath :: String -> String
+toPath :: String -> FilePath
 toPath = ("./databases/" ++) . (++ ".csv")
 
 createDatabase :: String -> String -> IO ()
-createDatabase name types = appendFile (toPath name) $ types ++ "\n"
+createDatabase name types = appendFile (toPath name) (types ++ "\n")
+    >> putStrLn ("Database \"" ++ name ++ "\" with types " ++ types ++ " was successfully created")
 
 readNewData :: String -> IO ()
 readNewData name = do
@@ -101,15 +102,27 @@ main = do
               let args = tail $ split ' ' command
               fileExist <- doesFileExist $ toPath $ head args
               if fileExist then putStrLn "This database already exists!"
-                else if (areTypes (split ',' (rm ' ' (join (tail args)))))
-                  then createDatabase (head args) $ join $ tail args
-                  else putStrLn "Invalid types declaration!"
+                  else if (areTypes $ split ',' $ rm ' ' $ join $ tail args)
+                      then createDatabase (head args) $ join $ tail args
+                      else putStrLn "Invalid types declaration!"
+              main
+          "drop" -> do
+              let args = split ' ' command
+              fileExist <- doesFileExist $ toPath $ head $ tail args
+              if fileExist
+                  then removeFile (toPath $ head $ tail args)
+                    >> putStrLn ("Deleted database \"" ++ (head (tail args)) ++ "\"!")
+                  else putStrLn "Selected database doesn't exist!"
               main
           "use" -> do
               let arg = head $ tail $ split ' ' command
               fileExist <- doesFileExist $ toPath arg
               if fileExist then workWithDatabase arg
                 else putStrLn "Selected database doesn't exist!"
+              main
+          "list" -> do
+              databases <- listDirectory "databases"
+              print databases
               main
           "exit" -> do
               putStrLn "Exiting..."
