@@ -7,9 +7,12 @@ import Database.Table
 import System.Directory
 import Control.Monad
 
+toTuple :: [a] -> (a, a)
+toTuple (x:y:[]) = (x, y)
+
 createTable :: String -> String -> String -> IO ()
 createTable database name types = do
-    let valid = areTypes $ map (head . split ':') $ split ',' types
+    let valid = areTypes $ map (toTuple . split ':') $ split ',' types
     appendFile (toPath database name) (types ++ "\n") 
     >> putStrLn ("Table \"" ++ name ++ "\" with types (" ++ types ++ ") was created!")
 
@@ -21,7 +24,9 @@ workWithDatabase name = do
         "create" -> do
             fileExist <- doesFileExist $ toPath name $ head $ tail args
             if fileExist then putStrLn "This table already exists!"
-                         else createTable name (head $ tail args) $ join $ tail $ tail args
+                         else if areTypes $ map (toTuple . split ':') $ split ',' $ last args
+                            then createTable name (head $ tail args) $ join $ tail $ tail args
+                            else putStrLn "Invalid declaration!"
             workWithDatabase name
         "drop" -> do
             fileExist <- doesFileExist $ toPath name $ head $ tail args

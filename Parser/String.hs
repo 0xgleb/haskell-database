@@ -30,11 +30,11 @@ parse :: [String] -> [String] -> [PolyType]
 parse [] [] = []
 parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
 
-areTypes :: [String] -> Bool
+areTypes :: [(String,String)] -> Bool
 areTypes [] = True
-areTypes ("Int":xs) = areTypes xs
-areTypes ("Float":xs) = areTypes xs
-areTypes ("String":xs) = areTypes xs
+areTypes ((_, "Int"):xs) = areTypes xs
+areTypes ((_, "Float"):xs) = areTypes xs
+areTypes ((_, "String"):xs) = areTypes xs
 areTypes (_:xs) = False
 
 safeRead :: [[String]] -> ([(String, String)], [[PolyType]])
