@@ -24,12 +24,11 @@ applyParams [] = \_ -> id
 query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
 query params (types, cont) = applyParams (map (split '#') params) types cont
 
--- (lines <$>) . hGetContents
 readData :: String -> String -> [String] -> IO ()
-readData database name [] = withFile (toPath database name) ReadMode (\handle -> hGetContents handle 
-     >>= (putStrLn . format . safeRead . map (split ',') . lines))
-readData database name params = withFile (toPath database name) ReadMode (\handle -> hGetContents handle 
-     >>= (putStrLn . show . query params . safeRead . map (split ',') . lines))
+readData database name [] = withFile (toPath database name) ReadMode (hGetContents >=>
+    (putStrLn . format . safeRead . map (split ',') . lines))
+readData database name params = withFile (toPath database name) ReadMode (hGetContents >=>
+    (putStrLn . show . query params . safeRead . map (split ',') . lines))
 
 getNewData :: String -> String -> IO ()
 getNewData database name = do
