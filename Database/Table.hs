@@ -17,8 +17,21 @@ transform :: Monad m => ((m a) -> u -> b) -> Maybe u -> ([m a] -> m [b])
 transform f (Just x) = return . map (\y -> f y x)
 transform _ (Nothing) = \_ -> return []
 
+toOp :: String -> (a -> b -> c)
+toOp "==" = (==)
+toOp ">" = (>)
+toOp ">=" = (>=)
+toOp "<" = (<)
+toOp "<=" = (<=)
+
+eval :: String -> String -> String -> [String] -> ([[PolyType]] -> [[PolyType]])
+eval ('@':x) op y types = filter $ (toOp op) () (polyRead (sec (types!!index)) y)
+                     where
+                         index = (transform (!!) . elemIndex types . map fst) (types:[])
+
 applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
 applyParams (("select":nm:[]):ys) = transform (!!) . elemIndex nm . map fst
+applyParams (("where":nm:[]):ys) = (\(x:o:y:[]) -> eval x o y) . split ' ' . init . tail nm
 applyParams [] = \_ -> id
 
 query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
@@ -31,19 +44,16 @@ readData database name params = withFile (toPath database name) ReadMode (hGetCo
     (putStrLn . show . query params . safeRead . map (split ',') . lines))
 
 getNewData :: String -> String -> IO ()
-getNewData database name = do
-    handle <- openFile (toPath database name) ReadWriteMode
-    content <- hGetContents handle
-    let types = map (last . split ':') $ split ',' $ head $ lines content
-    putStrLn ("Types: " ++ (head $ lines content))
-    hClose handle
-    putStr "Enter new data: "
-    inputData <- getLine
-    let newData = split ',' inputData
-    if ([] == filter (== Invalid) (parse types newData))
-        then appendFile (toPath database name) $ inputData ++ "\n"
-        else putStrLn "Invalid data"
-
+getNewData database name = withFile (toPath database name) ReadWriteMode (\handle -> do
+        content <- hGetContents handle
+        let types = map (last . split ':') $ split ',' $ head $ lines content
+        putStrLn ("Types: " ++ (head $ lines content))
+        putStr "Enter new data: "
+        newData <- split ',' <$> getLine
+        if ([] == filter (== Invalid) (parse types newData))
+                then appendFile (toPath database name) $ inputData ++ "\n"
+                else putStrLn "Invalid data")
+    
 workWithTable :: String -> String -> IO ()
 workWithTable database name = do
     putStr $ database ++ "::" ++ name ++ " => "

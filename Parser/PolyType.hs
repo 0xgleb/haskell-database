@@ -6,7 +6,7 @@ module Parser.PolyType
 data PolyType = PolyString String | PolyFloat Float | PolyInt Int | Invalid
               deriving (Eq)
 instance Show PolyType where
-    show (PolyString str) = str
+    show (PolyString str) = show str
     show (PolyFloat int) = show int
     show (PolyInt float) = show float
     show Invalid = "Invalid"

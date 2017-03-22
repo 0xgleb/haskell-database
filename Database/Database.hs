@@ -7,8 +7,9 @@ import Database.Table
 import System.Directory
 import Control.Monad
 
-toTuple :: [a] -> (a, a)
-toTuple (x:y:[]) = (x, y)
+toTuple :: [a] -> Maybe (a, a)
+toTuple (x:y:[]) = Just (x, y)
+toTuple _        = Nothing
 
 createTable :: String -> String -> String -> IO ()
 createTable database name types = do
@@ -24,9 +25,9 @@ workWithDatabase name = do
         "create" -> do
             fileExist <- doesFileExist $ toPath name $ head $ tail args
             if fileExist then putStrLn "This table already exists!"
-                         else if areTypes $ map (toTuple . split ':') $ split ',' $ last args
-                            then createTable name (head $ tail args) $ join $ tail $ tail args
-                            else putStrLn "Invalid declaration!"
+                else if areTypes $ map (toTuple . split ':') $ split ',' $ last args
+                   then createTable name (head $ tail args) $ join $ tail $ tail args
+                   else putStrLn "Invalid declaration!"
             workWithDatabase name
         "drop" -> do
             fileExist <- doesFileExist $ toPath name $ head $ tail args

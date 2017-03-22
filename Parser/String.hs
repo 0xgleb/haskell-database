@@ -18,23 +18,31 @@ rm target = filter (/= target)
 format :: ([(String, String)], [[PolyType]]) -> String
 format (types, values) = (show types) ++ (foldl' ((++) . (++ "\n")) "" (map show values))
 
-split :: Eq a => a -> [a] -> [[a]]
-split target = reverse . splitHelper target [[]]
-                where
-                    splitHelper _ res [] = res
-                    splitHelper chr (y:ys) (x:xs)
-                      | x == chr = splitHelper chr ([]:y:ys) xs
-                      | otherwise = splitHelper chr ((y ++ [x]):ys) xs
+split :: Char -> String -> [String]
+split target = reverse . splitHelper target '_' [[]]
+             where
+                splitHelper _ _ res [] = res
+                splitHelper chr '(' (y:ys) (x:xs)
+                  | x == ')' = splitHelper chr '_' ((y ++ [x]):ys) xs
+                  | otherwise = splitHelper chr '(' ((y ++ [x]):ys) xs
+                splitHelper chr '"' (y:ys) (x:xs)
+                  | x == '"' = splitHelper chr '_' ((y ++ [x]):ys) xs
+                  | otherwise = splitHelper chr '"' ((y ++ [x]):ys) xs
+                splitHelper chr '_' (y:ys) (x:xs)
+                  | x == '(' = splitHelper chr '(' ((y ++ [x]):ys) xs
+                  | x == '"' = splitHelper chr '"' ((y ++ [x]):ys) xs
+                  | x == chr = splitHelper chr '_' ([]:y:ys) xs
+                  | otherwise = splitHelper chr '_' ((y ++ [x]):ys) xs
 
 parse :: [String] -> [String] -> [PolyType]
 parse [] [] = []
 parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
 
-areTypes :: [(String,String)] -> Bool
+areTypes :: [Maybe (String,String)] -> Bool
 areTypes [] = True
-areTypes ((_, "Int"):xs) = areTypes xs
-areTypes ((_, "Float"):xs) = areTypes xs
-areTypes ((_, "String"):xs) = areTypes xs
+areTypes ((Just (_, "Int")):xs) = areTypes xs
+areTypes ((Just (_, "Float")):xs) = areTypes xs
+areTypes ((Just (_, "String")):xs) = areTypes xs
 areTypes (_:xs) = False
 
 safeRead :: [[String]] -> ([(String, String)], [[PolyType]])
