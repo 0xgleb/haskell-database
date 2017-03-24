@@ -7,17 +7,21 @@ import Database.Table
 import System.Directory
 import Control.Monad
 
+createTable :: String -> String -> String -> IO ()
+createTable database name types = do
+    let valid = areTypes $ map (head . split ':') $ split ',' types
+    appendFile (toPath database name) (types ++ "\n") 
+    >> putStrLn ("Table \"" ++ name ++ "\" with types (" ++ types ++ ") was created!")
+
 workWithDatabase :: String -> IO ()
 workWithDatabase name = do
-    putStr (name ++ ":> ")
+    putStr (name ++ " => ")
     args <- split ' ' <$> getLine
     case (head args) of
         "create" -> do
             fileExist <- doesFileExist $ toPath name $ head $ tail args
             if fileExist then putStrLn "This table already exists!"
-                else if (areTypes $ split ',' $ rm ' ' $ join $ tail args)
-                    then createTable name (head $ tail args) $ join $ tail args
-                    else putStrLn "Invalid types declaration!"
+                         else createTable name (head $ tail args) $ join $ tail $ tail args
             workWithDatabase name
         "drop" -> do
             fileExist <- doesFileExist $ toPath name $ head $ tail args

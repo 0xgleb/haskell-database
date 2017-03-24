@@ -15,7 +15,7 @@ import Data.List (foldl')
 rm :: Eq a => a -> [a] -> [a]
 rm target = filter (/= target)
 
-format :: ([String], [[PolyType]]) -> String
+format :: ([(String, String)], [[PolyType]]) -> String
 format (types, values) = (show types) ++ (foldl' ((++) . (++ "\n")) "" (map show values))
 
 split :: Eq a => a -> [a] -> [[a]]
@@ -37,5 +37,6 @@ areTypes ("Float":xs) = areTypes xs
 areTypes ("String":xs) = areTypes xs
 areTypes (_:xs) = False
 
-safeRead :: [[String]] -> ([String], [[PolyType]])
-safeRead arr = (head arr, map (parse (head arr)) $ tail arr)
+safeRead :: [[String]] -> ([(String, String)], [[PolyType]])
+safeRead arr = ((map ((\[x1,x2] -> (x1, x2)) . split ':') . head) arr, 
+                map (parse $ map (last . split ':') $ head arr) $ tail arr)
