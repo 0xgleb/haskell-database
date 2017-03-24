@@ -13,13 +13,13 @@ import Data.List
 toPath :: String -> String -> FilePath
 toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".csv")
 
-applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
-applyParams (("select":nm:[]):ys) types = let index = elemIndex nm $ map fst types in
-                                        case index of
-                                          (Just i) -> return . (map (!!i)) . (applyParams ys types)
-                                          Nothing  -> (\_ -> [[]])
+transform :: Monad m => ((m a) -> u -> b) -> Maybe u -> ([m a] -> m [b])
+transform f (Just x) = return . map (\y -> f y x)
+transform _ (Nothing) = \_ -> return []
 
-applyParams [] _ = id
+applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
+applyParams (("select":nm:[]):ys) = transform (!!) . elemIndex nm . map fst
+applyParams [] = \_ -> id
 
 query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
 query params (types, cont) = applyParams (map (split '#') params) types cont
