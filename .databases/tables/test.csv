@@ -1,3 +1,0 @@
-id:Int,num:Int,name:String
-1,15,"a string"
-666,777,"another test"

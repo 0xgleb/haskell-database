@@ -8,9 +8,28 @@ import Parser.PolyType
 import System.Directory
 import System.IO
 import Control.Monad
+import Data.List
 
 toPath :: String -> String -> FilePath
 toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".csv")
+
+applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
+applyParams (("select":nm:[]):ys) types = let index = elemIndex nm $ map fst types in
+                                        case index of
+                                          (Just i) -> return . (map (!!i)) . (applyParams ys types)
+                                          Nothing  -> (\_ -> [[]])
+
+applyParams [] _ = id
+
+query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
+query params (types, cont) = applyParams (map (split '#') params) types cont
+
+-- (lines <$>) . hGetContents
+readData :: String -> String -> [String] -> IO ()
+readData database name [] = withFile (toPath database name) ReadMode (\handle -> hGetContents handle 
+     >>= (putStrLn . format . safeRead . map (split ',') . lines))
+readData database name params = withFile (toPath database name) ReadMode (\handle -> hGetContents handle 
+     >>= (putStrLn . show . query params . safeRead . map (split ',') . lines))
 
 getNewData :: String -> String -> IO ()
 getNewData database name = do
@@ -28,12 +47,11 @@ getNewData database name = do
 
 workWithTable :: String -> String -> IO ()
 workWithTable database name = do
-    putStr (database ++ "::" ++ name ++ " => ")
-    command <- getLine
-    case command of
+    putStr $ database ++ "::" ++ name ++ " => "
+    args <- split ' ' <$> getLine
+    case (head args) of
         "read" -> do
-            withFile (toPath database name) ReadMode (\handle -> hGetContents handle 
-                >>= (putStrLn . format . safeRead . map (split ',') . lines))
+            readData database name $ tail args
             workWithTable database name
         "write" -> getNewData database name >> workWithTable database name
         "exit" -> putStrLn "Exiting..."

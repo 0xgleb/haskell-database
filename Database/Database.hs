@@ -15,7 +15,7 @@ createTable database name types = do
 
 workWithDatabase :: String -> IO ()
 workWithDatabase name = do
-    putStr (name ++ " => ")
+    putStr $ name ++ " => "
     args <- split ' ' <$> getLine
     case (head args) of
         "create" -> do
