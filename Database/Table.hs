@@ -5,39 +5,42 @@ module Database.Table
 
 import Parser.String
 import Parser.PolyType
+
 import System.Directory
 import System.IO
+
+import Control.Applicative ((<*>))
 import Control.Monad
+
+import Data.Maybe (maybeToList)
 import Data.List
 
 toPath :: String -> String -> FilePath
 toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".csv")
 
-transform :: Monad m => ((m a) -> u -> b) -> Maybe u -> ([m a] -> m [b])
-transform f (Just x) = return . map (\y -> f y x)
-transform _ (Nothing) = \_ -> return []
-
--- toOp :: Ord a => String -> (a -> a -> Bool)
--- toOp "==" = (==)
--- toOp ">" = (>)
--- toOp ">=" = (>=)
--- toOp "<" = (<)
--- toOp "<=" = (<=)
+toBinOp :: Ord a => String -> (a -> a -> Bool)
+toBinOp "==" = (==)
+toBinOp ">" = (>)
+toBinOp ">=" = (>=)
+toBinOp "<" = (<)
+toBinOp "<=" = (<=)
 
 -- eval :: String -> String -> String -> [String] -> ([[PolyType]] -> [[PolyType]])
 -- eval ('@':x) op y types = filter $ (toOp op) () (polyRead (sec (types!!index)) y)
 --                      where
 --                          index = (transform (!!) . elemIndex types . map fst) (types:[])
 
+select :: String -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
+select name types = return . (<*>) (maybeToList $ flip (!!) <$> (elemIndex name $ map fst types))
+
 applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
-applyParams (("select":nm:[]):ys) = transform (!!) . elemIndex nm . map fst
+applyParams (("select":nm:[]):ys) = select nm
 -- applyParams (("where":nm:[]):ys) = (\(x:o:y:[]) -> eval x o y) . split ' ' . init . tail nm
 applyParams [] = \_ -> id
 
 query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
 query params (types, cont) = applyParams (map (split '#') params) types cont
 
--- thanks to lazy IO, we don't need to read data line by line 
 readData :: String -> String -> [String] -> IO ()
 readData database name [] = withFile (toPath database name) ReadMode $ hGetContents >=> 
                                     putStrLn . format . safeRead . map (split ',') . lines
