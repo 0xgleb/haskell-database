@@ -74,4 +74,5 @@ workWithTable database name = do
             workWithTable database name
         "write" -> getNewData database name >> workWithTable database name
         "exit" -> putStrLn "Exiting..."
+        "" -> workWithTable database name
         _      -> putStrLn "Invalid command!" >> workWithTable database name

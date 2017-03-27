@@ -30,6 +30,7 @@ workWithDatabases = do
             workWithDatabases
         "ls" -> listDirectory (toPath "") >>= print >> workWithDatabases
         "exit" -> putStrLn "Exiting..."
+        "" -> workWithDatabases
         _      -> putStrLn "Invalid command!" >> workWithDatabases
 
 main = do

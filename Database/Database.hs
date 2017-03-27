@@ -44,4 +44,5 @@ workWithDatabase name = do
         "ls" -> listDirectory ("./.databases/" ++ name) 
             >>= print . map (join . init . split '.') >> (workWithDatabase name)
         "exit" -> putStrLn "Exiting..."
+        "" -> workWithDatabase name
         _      -> putStrLn "Invalid command!" >> (workWithDatabase name)
