@@ -1,6 +1,8 @@
 module Parser.PolyType 
 ( PolyType(..)
 , polyRead
+, readSomething
+, fmap
 ) where
 
 data PolyType = PolyString String | PolyFloat Float | PolyInt Int | Invalid
@@ -22,3 +24,10 @@ polyRead "String" str = case reads str :: [(String,String)] of
                             [(x, "")] -> PolyString x
                             _         -> Invalid
 polyRead _ _ = Invalid
+
+(<|>) :: PolyType -> PolyType -> PolyType
+Invalid <|> x = x
+x <|> _ = x
+
+readSomething :: String -> PolyType
+readSomething str = polyRead "String" str <|> polyRead "Int" str <|> polyRead "Float" str
