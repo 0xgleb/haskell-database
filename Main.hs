@@ -14,7 +14,7 @@ main = do
         "create" -> do
             databaseExist <- doesDirectoryExist $ toPath $ head $ tail args
             if databaseExist then putStrLn "This database already exists!"
-                         else createDirectory $ toPath $ head $ tail args
+                             else createDirectory $ toPath $ head $ tail args
             main
         "destroy" -> do
             databaseExist <- doesDirectoryExist $ toPath $ head $ tail args
@@ -25,7 +25,7 @@ main = do
         "use" -> do
             databaseExist <- doesDirectoryExist $ toPath $ head $ tail args
             if databaseExist then workWithDatabase (head $ tail args)
-                         else putStrLn "Selected database doesn't exist!"
+                             else putStrLn "Selected database doesn't exist!"
             main
         "ls" -> listDirectory (toPath "") >>= print >> main
         "exit" -> putStrLn "Exiting..."
