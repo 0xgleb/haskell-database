@@ -36,6 +36,7 @@ eval :: String -> [(String, String)] -> ([PolyType] -> PolyType)
 eval str types = (<|>) (readSomething str) . head . head . select str types . return
 
 select :: String -> [(String, String)] -> ([[a]] -> [[a]])
+select "*" _ = id
 select ('(':xs) types = \l -> transpose $ join $ map (\str -> select str types l) $ split ',' $ rm ' ' $ init xs
 select name types = return . (<*>) (maybeToList $ flip (!!) <$> (elemIndex name $ map fst types))
 
@@ -48,6 +49,9 @@ applyParams [] _ = id
 query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
 query params (types, cont) = applyParams (map (split '#') params) types cont
 
+readTypes :: String -> String -> IO ()
+readTypes database name = withFile (toPath database name) ReadMode $ hGetLine >=> putStrLn
+
 readData :: String -> String -> [String] -> IO ()
 readData database name [] = withFile (toPath database name) ReadMode $ hGetContents >=> 
                                     putStrLn . format . safeRead . map (split ',') . lines
@@ -55,23 +59,22 @@ readData database name params = withFile (toPath database name) ReadMode $ hGetC
                                     putStrLn . show . query params . safeRead . map (split ',') . lines
 
 getNewData :: String -> String -> IO ()
-getNewData database name = withFile (toPath database name) ReadWriteMode (\handle -> 
+getNewData database name = withFile (toPath database name) ReadWriteMode $ \handle -> 
     hGetLine handle >>= (\types -> 
         (putStrLn . (++) "Types: ") types >> putStr "Enter new data: "
         >> getLine >>= (\inputData -> 
             if (==) [] $ filter (== Invalid) $ parse (map (last . split ':') $ split ',' types) $ split ',' inputData
                then hSeek handle SeekFromEnd 0 >> hPutStrLn handle inputData
-               else putStrLn "Invalid data")))
+               else putStrLn "Invalid data"))
     
 workWithTable :: String -> String -> IO ()
 workWithTable database name = do
     putStr $ database ++ "::" ++ name ++ " => "
     args <- split ' ' <$> getLine
     case (head args) of
-        "read" -> do
-            readData database name $ tail args
-            workWithTable database name
-        "write" -> getNewData database name >> workWithTable database name
-        "exit" -> putStrLn "Exiting..."
-        "" -> workWithTable database name
-        _      -> putStrLn "Invalid command!" >> workWithTable database name
+      "types" -> readTypes database name >> workWithTable database name
+      "read" -> readData database name (tail args) >> workWithTable database name
+      "write" -> getNewData database name >> workWithTable database name
+      "exit" -> putStrLn "Exiting..."
+      "" -> workWithTable database name
+      _      -> putStrLn "Invalid command!" >> workWithTable database name
