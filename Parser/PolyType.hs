@@ -1,8 +1,8 @@
 module Parser.PolyType 
 ( PolyType(..)
 , polyRead
+, (<|>)
 , readSomething
-, fmap
 ) where
 
 data PolyType = PolyString String | PolyFloat Float | PolyInt Int | Invalid

@@ -33,8 +33,9 @@ toBinOp "<=" = (<=)
 -- toOp "/" = (/)
 
 eval :: String -> [(String, String)] -> ([PolyType] -> PolyType)
-eval ('@':xs) types = head . head . select xs types . return
-eval str _ = \_ -> readSomething str
+eval str types rows = (readSomething str) <|> (head $ head $ select str types $ return $ rows)
+-- eval ('@':xs) types = head . head . select xs types . return
+-- eval str _ = \_ -> readSomething str
 -- eval ('(':xs) types = split ' ' $ init xs
 
 select :: String -> [(String, String)] -> ([[a]] -> [[a]])
