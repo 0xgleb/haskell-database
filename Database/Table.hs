@@ -21,9 +21,9 @@ toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".csv")
 toBinOp :: Ord a => String -> (a -> a -> Bool)
 toBinOp "==" = (==)
 toBinOp "/=" = (/=)
-toBinOp ">" = (>)
+toBinOp ">"  = (>)
 toBinOp ">=" = (>=)
-toBinOp "<" = (<)
+toBinOp "<"  = (<)
 toBinOp "<=" = (<=)
 
 -- toOp :: Num a => String -> (a -> a -> a)
@@ -33,12 +33,10 @@ toBinOp "<=" = (<=)
 -- toOp "/" = (/)
 
 eval :: String -> [(String, String)] -> ([PolyType] -> PolyType)
-eval str types rows = (readSomething str) <|> (head $ head $ select str types $ return $ rows)
--- eval ('@':xs) types = head . head . select xs types . return
--- eval str _ = \_ -> readSomething str
--- eval ('(':xs) types = split ' ' $ init xs
+eval str types = (<|>) (readSomething str) . head . head . select str types . return
 
 select :: String -> [(String, String)] -> ([[a]] -> [[a]])
+select ('(':xs) types = \l -> transpose $ join $ map (\str -> select str types l) $ split ',' $ rm ' ' $ init xs
 select name types = return . (<*>) (maybeToList $ flip (!!) <$> (elemIndex name $ map fst types))
 
 applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
