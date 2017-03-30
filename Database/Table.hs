@@ -20,25 +20,33 @@ toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".csv")
 
 toBinOp :: Ord a => String -> (a -> a -> Bool)
 toBinOp "==" = (==)
+toBinOp "/=" = (/=)
 toBinOp ">" = (>)
 toBinOp ">=" = (>=)
 toBinOp "<" = (<)
 toBinOp "<=" = (<=)
 
--- eval :: String -> String -> String -> [String] -> ([[PolyType]] -> [[PolyType]])
--- eval ('@':x) op y types = filter $ (toOp op) () (polyRead (sec (types!!index)) y)
---                      where
---                          index = (transform (!!) . elemIndex types . map fst) (types:[])
+-- toOp :: Num a => String -> (a -> a -> a)
+-- toOp "+" = (+)
+-- toOp "-" = (-)
+-- toOp "*" = (*)
+-- toOp "/" = (/)
 
-select :: String -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
+eval :: String -> [(String, String)] -> ([a] -> a)
+eval ('@':xs) types = head . head . select xs types . return
+-- eval str _ = read str
+-- eval ('(':xs) types = split ' ' $ init xs
+
+select :: String -> [(String, String)] -> ([[a]] -> [[a]])
 select name types = return . (<*>) (maybeToList $ flip (!!) <$> (elemIndex name $ map fst types))
 
-applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
-applyParams (("select":nm:[]):ys) = select nm
--- applyParams (("where":nm:[]):ys) = (\(x:o:y:[]) -> eval x o y) . split ' ' . init . tail nm
-applyParams [] = \_ -> id
+applyParams :: Ord a => [[String]] -> [(String, String)] -> ([[a]] -> [[a]])
+applyParams (("select":nm:[]):ys) types = select nm types . applyParams ys types
+applyParams (("where":params:[]):ys) types = applyParams ys types . \l -> (\(x:o:y:[]) -> 
+            filter (\el -> toBinOp o (eval x types el) (eval y types el)) l) $ split ' ' $ init $ tail params
+applyParams [] _ = id
 
-query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
+query :: Ord a => [String] -> ([(String, String)], [[a]]) -> [[a]]
 query params (types, cont) = applyParams (map (split '#') params) types cont
 
 readData :: String -> String -> [String] -> IO ()
