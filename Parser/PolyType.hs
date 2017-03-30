@@ -13,12 +13,12 @@ instance Show PolyType where
 
 polyRead :: String -> String -> PolyType
 polyRead "Int" str = case reads str :: [(Int,String)] of
-                        [(x, "")] -> PolyInt x
-                        _         -> Invalid
+                            [(x, "")] -> PolyInt x
+                            _         -> Invalid
 polyRead "Float" str = case reads str :: [(Float,String)] of
-                          [(x, "")] -> PolyFloat x
-                          _         -> Invalid
+                            [(x, "")] -> PolyFloat x
+                            _         -> Invalid
 polyRead "String" str = case reads str :: [(String,String)] of
-                           [(x, "")] -> PolyString x
-                           _         -> Invalid
+                            [(x, "")] -> PolyString x
+                            _         -> Invalid
 polyRead _ _ = Invalid
