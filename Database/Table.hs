@@ -67,14 +67,9 @@ getNewData database name = withFile (toPath database name) ReadWriteMode $ \hand
                then hSeek handle SeekFromEnd 0 >> hPutStrLn handle inputData
                else putStrLn "Invalid data"))
     
-workWithTable :: String -> String -> IO ()
-workWithTable database name = do
-    putStr $ database ++ "::" ++ name ++ " => "
-    args <- split ' ' <$> getLine
-    case (head args) of
-      "types" -> readTypes database name >> workWithTable database name
-      "read" -> readData database name (tail args) >> workWithTable database name
-      "write" -> getNewData database name >> workWithTable database name
-      "exit" -> putStrLn "Exiting..."
-      "" -> workWithTable database name
-      _      -> putStrLn "Invalid command!" >> workWithTable database name
+workWithTable :: String -> String -> [String] -> IO ()
+workWithTable database name args = case (head args) of
+                                      "types" -> readTypes database name
+                                      "read"  -> readData database name $ tail args
+                                      "write" -> getNewData database name
+                                      _       -> putStrLn "Invalid command!"
