@@ -1,8 +1,8 @@
 import System.IO
 import System.Directory
 import Control.Monad
-import Database.Database
-import Parser.String
+import Interface.Database
+import Parsing.String
 
 toPath :: String -> FilePath
 toPath = (++) "./.databases/"

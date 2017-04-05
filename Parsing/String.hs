@@ -1,22 +1,17 @@
-module Parser.String 
-( module Parser.PolyType
-, module Data.List
-, rm
-, format
+module Parsing.String 
+( rm
 , split
 , parse
 , areTypes
 , safeRead
+, readSomething
 ) where
 
-import Parser.PolyType
+import Types.PolyType
 import Data.List (foldl')
 
 rm :: Eq a => a -> [a] -> [a]
 rm target = filter (/= target)
-
-format :: ([(String, String)], [[PolyType]]) -> String
-format (types, values) = (show types) ++ (foldl' ((++) . (++ "\n")) "" (map show values))
 
 split :: Char -> String -> [String]
 split target = reverse . splitHelper target '_' [[]]
@@ -48,3 +43,24 @@ areTypes (_:xs) = False
 safeRead :: [[String]] -> ([(String, String)], [[PolyType]])
 safeRead arr = ((map ((\[x1,x2] -> (x1, x2)) . split ':') . head) arr, 
                 map (parse $ map (last . split ':') $ head arr) $ tail arr)
+
+readSomething :: String -> PolyType
+readSomething str = tmpReadSomething str possibleTypes
+                    where 
+                        tmpReadSomething str (x:xs) = polyReadFromString x str <|> tmpReadSomething str xs
+                        tmpReadSomething _ [] = Invalid
+
+polyReadFromString :: String -> String -> PolyType
+polyRead "Int"    str = case reads str :: [(Int,String)] of
+                                    [(x, "")] -> PolyInt x
+                                    _         -> Invalid
+polyRead "Float"  str = case reads str :: [(Float,String)] of
+                                    [(x, "")] -> PolyFloat x
+                                    _         -> Invalid
+polyRead "String" str = case reads str :: [(String,String)] of
+                                    [(x, "")] -> PolyString x
+                                    _         -> Invalid
+polyRead "Bool"   str = case reads str :: [(Bool,String)] of
+                                    [(x, "")] -> PolyBool x
+                                    _         -> Invalid
+polyReadFromString _ _ = Invalid

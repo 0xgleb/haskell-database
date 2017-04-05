@@ -1,9 +1,9 @@
-module Database.Database
+module Interface.Database
 ( workWithDatabase
 ) where
 
-import Parser.String
-import Database.Table
+import Parsing.String
+import Interface.Table
 import System.Directory
 import Control.Monad
 

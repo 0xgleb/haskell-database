@@ -1,10 +1,12 @@
-module Database.Table
+module Interface.Table
 ( toPath
 , workWithTable
 ) where
 
-import Parser.String
-import Parser.PolyType
+import Parsing.String
+
+import Types.PolyType
+import Types.Table
 
 import System.Directory
 import System.IO
