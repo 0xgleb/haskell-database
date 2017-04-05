@@ -2,6 +2,7 @@ module Interface.Database
 ( workWithDatabase
 ) where
 
+import Common.String
 import Parsing.String
 import Interface.Table
 import System.Directory

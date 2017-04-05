@@ -3,6 +3,7 @@ module Interface.Table
 , workWithTable
 ) where
 
+import Common.String
 import Parsing.String
 
 import Types.PolyType
