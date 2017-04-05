@@ -2,6 +2,8 @@ module Parser.PolyType
 ( AType(..)
 , PolyType(..)
 , Table(..)
+, types
+, values
 , polyReadFromString
 , (<|>)
 , readSomething
@@ -40,20 +42,28 @@ instance Show PolyType where
     show (PolyInt float)  = show float
     show Invalid          = "Invalid"
 
-putPolyType Invalid           = put ()
-putPolyType (PolyBool val)    = put val
-putPolyType (PolyInt val)     = put val
-putPolyType (PolyFloat val)   = put val
-putPolyType (PolyString val)  = put val
-
 newtype Table = Table ([(String, AType)], [[PolyType]])
-                deriving (Show)
+
+types :: Table -> [(String, AType)]
+types (Table (types, _)) = types
+
+values :: Table -> [[PolyType]]
+values (Table (_, values)) = values
+
+instance Show Table where
+    show (Table (types, values)) = (show types) ++ (foldl' ((++) . (++ "\n")) "" (map show values))
 
 instance Binary Table where
     put (Table (types, values)) = put types >> putAllData values
                           where
                               putAllData (x:xs) = putWord8 1 >> (foldl' (>>) (return ()) $ map putPolyType x) >> putAllData xs
                               putAllData [] = putWord8 0
+                              putPolyType Invalid           = put ()
+                              putPolyType (PolyBool val)    = put val
+                              putPolyType (PolyInt val)     = put val
+                              putPolyType (PolyFloat val)   = put val
+                              putPolyType (PolyString val)  = put val
+
                               
     get = do types <- get :: Get [(String, AType)]
              values <- getPolyTypes $ map snd types

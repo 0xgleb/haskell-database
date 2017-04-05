@@ -9,6 +9,9 @@ import Parser.PolyType
 import System.Directory
 import System.IO
 
+import qualified Data.ByteString.Lazy as BL
+import Data.Binary
+
 import Control.Applicative ((<*>))
 import Control.Monad
 
@@ -16,7 +19,7 @@ import Data.Maybe (maybeToList)
 import Data.List
 
 toPath :: String -> String -> FilePath
-toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".csv")
+toPath database = (("./.databases/" ++ database ++ "/") ++) . (++ ".table")
 
 toBinOp :: Ord a => String -> (a -> a -> Bool)
 toBinOp "==" = (==)
@@ -50,13 +53,14 @@ query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
 query params (types, cont) = applyParams (map (split '#') params) types cont
 
 readTypes :: String -> String -> IO ()
-readTypes database name = withFile (toPath database name) ReadMode $ hGetLine >=> putStrLn
+readTypes database name = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
+                                putStrLn . show . types . (decode :: BL.ByteString -> Table)
 
 readData :: String -> String -> [String] -> IO ()
-readData database name [] = withFile (toPath database name) ReadMode $ hGetContents >=> 
-                                    putStrLn . format . safeRead . map (split ',') . lines
-readData database name params = withFile (toPath database name) ReadMode $ hGetContents >=> 
-                                    putStrLn . show . query params . safeRead . map (split ',') . lines
+readData database name _ = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
+                                        putStrLn . show . (decode :: BL.ByteString -> Table)
+-- readData database name params = withFile (toPath database name) ReadMode $ hGetContents >=> 
+-- putStrLn . show . query params . safeRead . map (split ',') . lines
 
 getNewData :: String -> String -> IO ()
 getNewData database name = withFile (toPath database name) ReadWriteMode $ \handle -> 
