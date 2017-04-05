@@ -10,9 +10,10 @@ data PolyType = PolyBool Bool | PolyInt Int | PolyFloat Float | PolyString Strin
                 deriving (Eq, Ord)
 
 instance Show PolyType where
-    show (PolyString str) = show str
-    show (PolyFloat int)  = show int
-    show (PolyInt float)  = show float
+    show (PolyString val) = show val
+    show (PolyFloat  val) = show val
+    show (PolyInt    val) = show val
+    show (PolyBool   val) = show val
     show Invalid          = "Invalid"
 
 (<|>) :: PolyType -> PolyType -> PolyType

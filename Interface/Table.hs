@@ -32,38 +32,40 @@ toBinOp ">=" = (>=)
 toBinOp "<"  = (<)
 toBinOp "<=" = (<=)
 
--- toOp :: Num a => String -> (a -> a -> a)
--- toOp "+" = (+)
--- toOp "-" = (-)
--- toOp "*" = (*)
--- toOp "/" = (/)
-
-eval :: String -> [(String, String)] -> ([PolyType] -> PolyType)
-eval str types = (<|>) (readSomething str) . head . head . select str types . return
-
-select :: String -> [(String, String)] -> ([[a]] -> [[a]])
+select :: String -> [(String, AType)] -> ([[a]] -> [[a]])
 select "*" _ = id
 select ('(':xs) types = \l -> transpose $ join $ map (\str -> select str types l) $ split ',' $ rm ' ' $ init xs
 select name types = return . (<*>) (maybeToList $ flip (!!) <$> (elemIndex name $ map fst types))
 
-applyParams :: [[String]] -> [(String, String)] -> ([[PolyType]] -> [[PolyType]])
+maybeToPoly :: Maybe PolyType -> PolyType
+maybeToPoly (Just x) = x
+maybeToPoly _ = Invalid
+
+safeHead :: [a] -> Maybe a
+safeHead (x:xs) = Just x
+safeHead _ = Nothing
+
+eval :: String -> [(String, AType)] -> ([PolyType] -> PolyType)
+eval str types = (readSomething str <|>) . maybeToPoly . (safeHead >=> safeHead) . select str types . return
+
+applyParams :: [[String]] -> [(String, AType)] -> ([[PolyType]] -> [[PolyType]])
 applyParams (("select":nm:[]):ys) types = select nm types . applyParams ys types
 applyParams (("where":params:[]):ys) types = applyParams ys types . \l -> (\(x:o:y:[]) -> 
             filter (\el -> toBinOp o (eval x types el) (eval y types el)) l) $ split ' ' $ init $ tail params
 applyParams [] _ = id
 
-query :: [String] -> ([(String, String)], [[PolyType]]) -> [[PolyType]]
-query params (types, cont) = applyParams (map (split '#') params) types cont
+query :: [String] -> Table -> [[PolyType]]
+query params (Table (types, cont)) = applyParams (map (split '#') params) types cont
 
 readTypes :: String -> String -> IO ()
 readTypes database name = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
                                 putStrLn . show . types . (decode :: BL.ByteString -> Table)
 
 readData :: String -> String -> [String] -> IO ()
-readData database name _ = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
+readData database name [] = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
                                         putStrLn . show . (decode :: BL.ByteString -> Table)
--- readData database name params = withFile (toPath database name) ReadMode $ hGetContents >=> 
--- putStrLn . show . query params . safeRead . map (split ',') . lines
+readData database name params = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
+                                        putStrLn . show . query params . (decode :: BL.ByteString -> Table)
 
 getNewData :: String -> String -> IO ()
 getNewData database name = withFile (toPath database name) ReadWriteMode $ \handle -> 

@@ -11,7 +11,7 @@ import Data.List (foldl')
 
 parse :: [String] -> [String] -> [PolyType]
 parse [] [] = []
-parse (x:xs) (y:ys) = polyReadFromString x y : parse xs ys
+parse (x:xs) (y:ys) = polyRead x y : parse xs ys
 
 areTypes :: [Maybe (String,String)] -> Bool
 areTypes [] = True
@@ -27,10 +27,10 @@ safeRead arr = ((map ((\[x1,x2] -> (x1, x2)) . split ':') . head) arr,
 readSomething :: String -> PolyType
 readSomething str = tmpReadSomething str possibleTypes
                     where 
-                        tmpReadSomething str (x:xs) = polyReadFromString x str <|> tmpReadSomething str xs
+                        tmpReadSomething str (x:xs) = polyRead x str <|> tmpReadSomething str xs
                         tmpReadSomething _ [] = Invalid
 
-polyReadFromString :: String -> String -> PolyType
+polyRead :: String -> String -> PolyType
 polyRead "Int"    str = case reads str :: [(Int,String)] of
                                     [(x, "")] -> PolyInt x
                                     _         -> Invalid
@@ -43,4 +43,4 @@ polyRead "String" str = case reads str :: [(String,String)] of
 polyRead "Bool"   str = case reads str :: [(Bool,String)] of
                                     [(x, "")] -> PolyBool x
                                     _         -> Invalid
-polyReadFromString _ _ = Invalid
+polyRead _ _ = Invalid
