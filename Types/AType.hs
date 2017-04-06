@@ -5,8 +5,8 @@ module Types.AType
 
 import Data.Binary
 
-possibleTypes :: [String]
-possibleTypes = ["Bool", "Int", "Float", "String"]
+possibleTypes :: [AType]
+possibleTypes = [BoolType, IntType, FloatType, StringType]
 
 data AType = BoolType | IntType | FloatType | StringType | InvalidType
              deriving (Show)

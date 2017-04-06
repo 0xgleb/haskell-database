@@ -4,19 +4,21 @@ module Interface.Database
 
 import Common.String
 import Parsing.String
+
+import Types.Table
 import Interface.Table
+
 import System.Directory
 import Control.Monad
 
-toTuple :: [a] -> Maybe (a, a)
-toTuple (x:y:[]) = Just (x, y)
-toTuple _        = Nothing
+import qualified Data.ByteString.Lazy as BL
+import Data.Binary
+
+toTuple :: [a] -> (a, a)
+toTuple (x:y:_) = (x, y)
 
 createTable :: String -> String -> String -> IO ()
-createTable database name types = do
-    let valid = areTypes $ map (toTuple . split ':') $ split ',' types
-    appendFile (toPath database name) (types ++ "\n") 
-    >> putStrLn ("Table \"" ++ name ++ "\" with types (" ++ types ++ ") was created!")
+createTable database name types = BL.writeFile (toPath database name) $ encode (Table (map (toType . toTuple . split ':') (split ',' types), [[]]))
 
 workWithDatabase :: String -> IO ()
 workWithDatabase name = do
@@ -32,7 +34,7 @@ workWithDatabase name = do
             "create" -> do
                 fileExist <- doesFileExist $ toPath name $ head $ tail args
                 if fileExist then putStrLn "This table already exists!"
-                    else if areTypes $ map (toTuple . split ':') $ split ',' $ last args
+                    else if areTypes $ map (split ':') $ split ',' $ last args
                        then createTable name (head $ tail args) $ join $ tail $ tail args
                        else putStrLn "Invalid declaration!"
                 workWithDatabase name

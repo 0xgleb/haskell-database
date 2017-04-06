@@ -59,15 +59,24 @@ query params (Table (types, cont)) = applyParams (map (split '#') params) types 
 
 readTypes :: String -> String -> IO ()
 readTypes database name = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
-                                putStrLn . show . types . (decode :: BL.ByteString -> Table)
+                                        putStrLn . show . types . (decode :: BL.ByteString -> Table)
 
 readData :: String -> String -> [String] -> IO ()
-readData database name [] = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
+readData database name []     = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
                                         putStrLn . show . (decode :: BL.ByteString -> Table)
 readData database name params = withFile (toPath database name) ReadMode $ BL.hGetContents >=> 
                                         putStrLn . show . query params . (decode :: BL.ByteString -> Table)
 
 getNewData :: String -> String -> IO ()
+getNewData database name = do
+    table <- BL.readFile (toPath database name) >>= return . decode :: IO Table
+    putStr $ "Types: " ++ (show $ types table) ++ "\nNew data: "
+    parse (map snd $ types table) . split ',' . rm ' ' <$> getLine >>= (\newRow ->
+        if filter (== Invalid) newRow == []
+           then BL.writeFile (toPath database name) $ encode $ Table (types table, values table ++ [newRow])
+           else putStrLn "Invalid data!")
+
+{-
 getNewData database name = withFile (toPath database name) ReadWriteMode $ \handle -> 
     hGetLine handle >>= (\types -> 
         (putStrLn . (++) "Types: ") types >> putStr "Enter new data: "
@@ -75,6 +84,7 @@ getNewData database name = withFile (toPath database name) ReadWriteMode $ \hand
             if (==) [] $ filter (== Invalid) $ parse (map (last . split ':') $ split ',' types) $ split ',' inputData
                then hSeek handle SeekFromEnd 0 >> hPutStrLn handle inputData
                else putStrLn "Invalid data"))
+-}
     
 workWithTable :: String -> String -> [String] -> IO ()
 workWithTable database name args = case (head args) of

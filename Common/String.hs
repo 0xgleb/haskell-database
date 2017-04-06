@@ -3,8 +3,10 @@ module Common.String
 , split
 ) where
 
-rm :: Eq a => a -> [a] -> [a]
-rm target = filter (/= target)
+import Control.Monad
+
+rm :: Char -> String -> String
+rm target = join . split target
 
 split :: Char -> String -> [String]
 split target = reverse . splitHelper target '_' [[]]
