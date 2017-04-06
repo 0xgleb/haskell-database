@@ -1,6 +1,14 @@
 import System.IO
 import System.Directory
+import System.Environment (getArgs)
+
 import Control.Monad
+import Control.Monad.Fix
+
+import Control.Concurrent
+import Control.Concurrent.Chan
+
+import Network.Socket
 
 import Common.String
 import Parsing.String
@@ -36,6 +44,39 @@ workWithDatabases = do
         "" -> workWithDatabases
         _      -> putStrLn "Invalid command!" >> workWithDatabases
 
-main = hSetBuffering stdin (BlockBuffering Nothing) >> doesDirectoryExist (toPath "") >>= (\e -> if e
-               then workWithDatabases
-               else (createDirectory $ toPath "") >> workWithDatabases)
+runConn :: (Socket, SockAddr) -> Chan String -> IO ()
+runConn (sock, _) chan = do
+    let broadcast msg = writeChan chan msg
+    hdl <- socketToHandle sock ReadWriteMode
+    hSetBuffering hdl NoBuffering
+    commLine <- dupChan chan
+    readFile "client/index.html" >>= hPutStrLn hdl
+    hClose hdl
+
+serverLoop :: Socket -> Chan String -> IO ()
+serverLoop sock chan = do
+    conn <- accept sock
+    forkIO $ runConn conn chan
+    serverLoop sock chan
+
+server :: IO ()
+server = do
+    putStrLn "Starting server."
+    sock <- socket AF_INET Stream 0
+    setSocketOption sock ReuseAddr 1
+    bind sock (SockAddrInet 3000 iNADDR_ANY)
+    listen sock 2
+    chan <- newChan
+    putStrLn "Listening on port 3000."
+    serverLoop sock chan
+
+main :: IO ()
+main = do 
+    hSetBuffering stdin (BlockBuffering Nothing) 
+    args <- getArgs
+    if head args == "server" 
+       then server
+       else do 
+           e <- doesDirectoryExist (toPath "") 
+           if e then workWithDatabases
+                else createDirectory (toPath "") >> workWithDatabases
