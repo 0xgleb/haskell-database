@@ -6,6 +6,7 @@ import Common.String
 import Parsing.String
 
 import Types.Table
+import Types.PolyType
 import Interface.Table
 
 import System.Directory
@@ -18,7 +19,7 @@ toTuple :: [a] -> (a, a)
 toTuple (x:y:_) = (x, y)
 
 createTable :: String -> String -> String -> IO ()
-createTable database name types = BL.writeFile (toPath database name) $ encode (Table (map (toType . toTuple . split ':') (split ',' types), [[]]))
+createTable database name types = BL.writeFile (toPath database name) $ encode (Table (map (toType . toTuple . split ':') (split ',' types), []))
 
 workWithDatabase :: String -> IO ()
 workWithDatabase name = do
