@@ -2,5 +2,5 @@
 **.swo
 .databases/**
 tags
-elm-stuff
-index.html
+client/elm-stuff
+client/index.html
