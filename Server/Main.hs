@@ -1,19 +1,22 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Server.Main
 ( server
 ) where
 
-import Control.Monad
 import qualified Control.Concurrent as Conc
 import qualified Control.Exception  as Exc
+import Control.Monad
 
-import qualified Data.Text as Text
+import qualified Data.Text            as Text
+import qualified Data.ByteString.Lazy as BL
 import Data.Binary
 
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
-import qualified Network.WebSockets as WS
+import qualified Network.WebSockets             as WS
 
 import qualified Safe
 
@@ -52,7 +55,7 @@ wsApp stateRef pendingConn = do
     Exc.finally (listen conn clientId stateRef) (disconnectClient clientId stateRef)
 
 httpApp :: Wai.Application
-httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] $ encode "Not a websocket request!"
+httpApp _ respond = respond $ Wai.responseFile Http.status200 [("content-type", "text/html")] "client/index.html" Nothing
 
 server :: IO ()
 server = do
