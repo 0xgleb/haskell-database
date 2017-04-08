@@ -26,6 +26,7 @@ workWithDatabase name = do
            fileExist <- doesFileExist $ toPath name $ last $ split '#' $ last args
            if fileExist then workWithTable name (last $ split '#' $ last args) $ init args
                         else putStrLn "This table doesn't exist!"
+           workWithDatabase name
        else case (head args) of
             "create" -> do
                 fileExist <- doesFileExist $ toPath name $ head $ tail args
