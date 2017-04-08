@@ -33,7 +33,6 @@ workWithDatabases = do
         "" -> workWithDatabases
         _      -> putStrLn "Invalid command!" >> workWithDatabases
 
-main = do
-    doesDirectoryExist (toPath "") >>= (\e -> if e
-       then workWithDatabases
-       else (createDirectory $ toPath "") >> workWithDatabases)
+main = hSetBuffering stdin (BlockBuffering Nothing) >> doesDirectoryExist (toPath "") >>= (\e -> if e
+               then workWithDatabases
+               else (createDirectory $ toPath "") >> workWithDatabases)
