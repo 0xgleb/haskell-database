@@ -36,7 +36,7 @@ split target = reverse . splitHelper target '_' [[]]
 
 parse :: [String] -> [String] -> [PolyType]
 parse [] [] = []
-parse (x:xs) (y:ys) = (polyRead x y):(parse xs ys)
+parse (x:xs) (y:ys) = polyReadFromString x y : parse xs ys
 
 areTypes :: [Maybe (String,String)] -> Bool
 areTypes [] = True
