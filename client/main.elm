@@ -1,5 +1,7 @@
-import Html        exposing (..)
-import Html.Events exposing (..)
+import Html            exposing (..)
+import Html.Events     exposing (..)
+import Html.Attributes exposing (..)
+
 import WebSocket
 
 type alias Model = Int
@@ -24,7 +26,7 @@ update msg model = case msg of
 view : Model -> Html Msg
 view model = 
   div []
-    [ p [] [ text <| "Pokes: " ++ toString model ]
+    [ input [ type_ "text" ] []
     , button [ onClick Send ] [ text "Poke others" ]
     ]
 

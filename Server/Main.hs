@@ -54,8 +54,16 @@ wsApp stateRef pendingConn = do
     WS.forkPingThread conn 30
     Exc.finally (listen conn clientId stateRef) (disconnectClient clientId stateRef)
 
+notFound :: Wai.Response
+notFound = Wai.responseLBS Http.status404 [("Content-Type", "text/plain")] "404 - Page Not Found"
+
+index :: Wai.Response
+index = Wai.responseFile Http.status200 [("Content-Type", "text/html")] "client/index.html" Nothing
+
 httpApp :: Wai.Application
-httpApp _ respond = respond $ Wai.responseFile Http.status200 [("content-type", "text/html")] "client/index.html" Nothing
+httpApp request respond = respond $ case Wai.rawPathInfo request of
+                                "/" -> index
+                                _   -> notFound
 
 server :: IO ()
 server = do
