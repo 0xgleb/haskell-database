@@ -1,27 +1,29 @@
-module Types.Table
+module Engine.Types.Table.Table
 ( Table(..)
+, TableName
 , types
 , values
 ) where
 
-import Types.AType
-import Types.PolyType
 import Data.Binary
 import Data.List (foldl')
 
+import Engine.Types.Table.PolyType
+
+type TableName = String
 newtype Table = Table ([(String, AType)], [[PolyType]])
 
 types :: Table -> [(String, AType)]
-types (Table (types, _)) = types
+types (Table (tableTypes, _)) = tableTypes
 
 values :: Table -> [[PolyType]]
-values (Table (_, values)) = values
+values (Table (_, tableValues)) = tableValues
 
 instance Show Table where
-    show (Table (types, values)) = (show types) ++ (foldl' ((++) . (++ "\n")) "" (map show values))
+    show (Table (tableTypes, tableValues)) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))
 
 instance Binary Table where
-    put (Table (types, values)) = put types >> putAllData values
+    put (Table (tableTypes, tableValues)) = put tableTypes >> putAllData tableValues
                           where
                               putAllData (x:xs) = putWord8 1 >> (foldl' (>>) (return ()) $ map putPolyType x) >> putAllData xs
                               putAllData [] = putWord8 0
@@ -32,14 +34,14 @@ instance Binary Table where
                               putPolyType (PolyString val)  = put val
 
                               
-    get = do types <- get :: Get [(String, AType)]
-             values <- getPolyTypes $ map snd types
-             return $ Table (types, values)
+    get = do tableTypes <- get :: Get [(String, AType)]
+             tableValues <- getPolyTypes $ map snd tableTypes
+             return $ Table (tableTypes, tableValues)
                  where
-                    getPolyTypes types = do t <- getWord8
-                                            case t of
-                                              0 -> return []
-                                              1 -> ((:) <$> getRow types) <*> getPolyTypes types
+                    getPolyTypes tableTypes = do t <- getWord8
+                                                 case  t of
+                                                   0 -> return []
+                                                   1 -> ((:) <$> getRow tableTypes) <*> getPolyTypes tableTypes
 
                     getRow (x:xs) = ((:) <$> getPolyType x) <*> getRow xs
                     getRow [] = return []

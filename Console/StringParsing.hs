@@ -1,18 +1,27 @@
-module Parsing.String 
+module Console.StringParsing
 ( parse
-, areTypes
 , readSomething
 , toType
+, toTuple
+, toTruple
 ) where
 
 import Common.String
-import Types.PolyType
-import Types.AType
+import Engine.Types.Table.PolyType
+import Engine.Types.Table.AType
 import Data.List (foldl')
 
 parse :: [AType] -> [String] -> [PolyType]
 parse [] [] = []
 parse (x:xs) (y:ys) = polyRead x y : parse xs ys
+
+toTuple :: [a] -> Maybe (a, a)
+toTuple (x:y:[]) = Just (x, y)
+toTuple _        = Nothing
+
+toTruple :: [a] -> Maybe (a, a, a)
+toTruple (x:y:z:[]) = Just (x, y, z)
+toTruple _          = Nothing
 
 toType :: (String, String) -> (String, AType)
 toType (name, "Bool")   = (name, BoolType)
@@ -20,13 +29,6 @@ toType (name, "Int")    = (name, IntType)
 toType (name, "Float")  = (name, FloatType)
 toType (name, "String") = (name, StringType)
 toType (name, _)        = (name, InvalidType)
-
-areTypes :: [[String]] -> Bool
-areTypes [] = True
-areTypes ((_:"Int":[]):xs) = areTypes xs
-areTypes ((_:"Float":[]):xs) = areTypes xs
-areTypes ((_:"String":[]):xs) = areTypes xs
-areTypes _ = False
 
 readSomething :: String -> PolyType
 readSomething str = tmpReadSomething str possibleTypes

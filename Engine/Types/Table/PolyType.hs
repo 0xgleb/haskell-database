@@ -1,10 +1,10 @@
-module Types.PolyType
+module Engine.Types.Table.PolyType
 ( PolyType(..)
 , (<|>)
-, module Types.AType
+, module Engine.Types.Table.AType
 ) where
 
-import Types.AType
+import Engine.Types.Table.AType
 
 data PolyType = PolyBool Bool | PolyInt Int | PolyFloat Float | PolyString String | Invalid
                 deriving (Eq, Ord)

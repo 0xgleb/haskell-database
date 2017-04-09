@@ -1,4 +1,4 @@
-module Types.AType
+module Engine.Types.Table.AType
 ( AType(..)
 , possibleTypes
 ) where
@@ -9,7 +9,7 @@ possibleTypes :: [AType]
 possibleTypes = [BoolType, IntType, FloatType, StringType]
 
 data AType = BoolType | IntType | FloatType | StringType | InvalidType
-             deriving (Show)
+    deriving (Eq, Show)
 
 instance Binary AType where
     put InvalidType = putWord8 0
