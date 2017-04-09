@@ -3,4 +3,4 @@
 .databases/**
 tags
 client/elm-stuff
-client/index.html
+**.html
