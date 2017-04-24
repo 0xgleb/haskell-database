@@ -5,6 +5,7 @@ module Engine.Types.Table.PolyType
 ) where
 
 import Engine.Types.Table.AType
+import Data.Binary
 
 data PolyType = PolyBool Bool | PolyInt Int | PolyFloat Float | PolyString String | Invalid
                 deriving (Eq, Ord)
@@ -16,6 +17,15 @@ instance Show PolyType where
     show (PolyBool   val) = show val
     show Invalid          = "Invalid"
 
+instance Binary PolyType where
+    put Invalid          = put ()
+    put (PolyBool   val) = put val
+    put (PolyInt    val) = put val
+    put (PolyFloat  val) = put val
+    put (PolyString val) = put val
+
+    get = undefined -- return Invalid
+
 (<|>) :: PolyType -> PolyType -> PolyType
 Invalid <|> x = x
-x <|> _ = x
+x       <|> _ = x

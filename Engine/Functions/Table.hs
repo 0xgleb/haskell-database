@@ -16,6 +16,8 @@ import Data.Maybe (maybeToList)
 import Data.List (elemIndex)
 
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as BS
+import System.IO
 import Data.Binary
 
 toPath :: DB -> TT.TableName -> FilePath
@@ -34,9 +36,6 @@ tableTypes :: DB -> TT.TableName -> IO [(String, TT.AType)]
 tableTypes db table = TT.types <$> from db table
 
 to :: DB -> TT.TableName -> [TT.PolyType] -> IO Bool
-to db table newData = do
-    let path = toPath db table
-    table <- BL.readFile path >>= return . decode :: IO TT.Table
-    if filter (== TT.Invalid) newData == []
-       then BL.writeFile path (encode $ TT.Table (TT.types table, TT.values table ++ [newData])) >> return True
-       else return False
+to db table newData = if filter (== TT.Invalid) newData == []
+                         then BL.appendFile (toPath db table) (BL.concat $ map encode newData) >> return True
+                         else return False
