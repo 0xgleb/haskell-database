@@ -1,5 +1,6 @@
 module Engine.Functions.Table
-( select
+( module TT
+, select
 , tableTypes
 , where_
 , toPath

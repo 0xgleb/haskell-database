@@ -13,6 +13,7 @@ import Console.DBConsole
 console :: IO ()
 console = do
     putStr "db -> "
+    hFlush stdout
     args <- split ' ' <$> getLine
     case (length $ tail args) of
       0 -> case (head args) of

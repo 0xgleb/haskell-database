@@ -12,6 +12,7 @@ import Common.String
 import Console.StringParsing
 
 import Control.Monad
+import System.IO
 import System.Directory
 
 toBinOp :: Ord a => String -> (a -> a -> Bool)
@@ -45,6 +46,7 @@ workWithDB :: DB -> IO ()
 workWithDB db = do
     let next = workWithDB db
     putStr $ db ++ " => "
+    hFlush stdout
     args <- split ' ' <$> getLine
     case (length $ tail args) of
       0 -> case (head args) of

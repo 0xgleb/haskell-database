@@ -1,0 +1,70 @@
+name:                db
+version:             0.1.0.0
+homepage:            https://gitlab.com/gleb_dianov/haskell-database
+license:             BSD3
+license-file:        LICENSE
+author:              Gleb Dianov
+maintainer:          gleb.dianov@utcreading.org.uk
+copyright:           2017 Gleb Dianov
+category:            Database
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Common
+                     , Engine
+                     , Console
+                     , Server
+  other-modules:       Common.Maybe
+                     , Common.String
+                     , Console.App
+                     , Console.DBConsole
+                     , Console.StringParsing
+                     , Engine.Functions.DB
+                     , Engine.Functions.Table
+                     , Engine.Types.DB
+                     , Engine.Types.Table
+                     , Engine.Types.Table.AType
+                     , Engine.Types.Table.PolyType
+                     , Engine.Types.Table.Table
+                     , Server.Main
+  build-depends:       base >= 4.7 && < 5
+                     , text 
+                     , extra
+                     , cond
+                     , safe
+                     , directory
+                     , bytestring
+                     , binary
+                     , http-types
+                     , wai
+                     , warp
+                     , websockets
+                     , wai-websockets
+  default-language:    Haskell2010
+
+executable db
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , db
+                     , directory
+  default-language:    Haskell2010
+
+test-suite db-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , db
+                     , hspec
+                     , QuickCheck
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://gitlab.com/gleb_dianov/haskell-database
