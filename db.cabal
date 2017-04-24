@@ -17,7 +17,7 @@ library
                      , Engine
                      , Console
                      , Server
-  other-modules:       Common.Maybe
+                     , Common.Maybe
                      , Common.String
                      , Console.App
                      , Console.DBConsole

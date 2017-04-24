@@ -19,7 +19,7 @@ split target = reverse . splitHelper target '_' [[]]
                   | x == '"' = splitHelper chr '_' ((y ++ [x]):ys) xs
                   | otherwise = splitHelper chr '"' ((y ++ [x]):ys) xs
                 splitHelper chr '_' (y:ys) (x:xs)
+                  | x == chr = splitHelper chr '_' ([]:y:ys) xs
                   | x == '(' = splitHelper chr '(' ((y ++ [x]):ys) xs
                   | x == '"' = splitHelper chr '"' ((y ++ [x]):ys) xs
-                  | x == chr = splitHelper chr '_' ([]:y:ys) xs
                   | otherwise = splitHelper chr '_' ((y ++ [x]):ys) xs
