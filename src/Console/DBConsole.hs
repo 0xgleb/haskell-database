@@ -24,13 +24,13 @@ toBinOp ">"  = (>)
 toBinOp "/=" = (/=)
 toBinOp _    = \_ _ -> False
 
-eval :: [(String, AType)] -> String -> ([PolyType] -> PolyType)
-eval types str = (readSomething str <|>) . maybeToPoly . (safeHead >=> safeHead) . select types [str] . return
+eval :: [(String, AType)] -> String -> (TT.Row -> PolyType)
+eval types str = (readSomething str <|>) . maybePolyToPoly . (safeHead >=> safeHead) . map TT.unwrap . select types [str] . return
                  where
-                     maybeToPoly (Just x) = x
-                     maybeToPoly _ = Invalid
+                     maybePolyToPoly (Just x) = x
+                     maybePolyToPoly _        = Invalid
 
-getQuery :: DB -> [(String, String)] -> String -> IO [[PolyType]]
+getQuery :: DB -> [(String, String)] -> String -> IO [TT.Row]
 getQuery db args target = (\table -> composer (TT.types table) args (TT.values table)) <$> from db target
     where
         composer types [] = id
