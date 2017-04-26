@@ -1,4 +1,4 @@
-module Engine.Types.Table.TableSpec (main, spec) where
+module Engine.Types.Table.TableSpec (main, spec, Table(..)) where
 
 import Test.Hspec
 import Test.QuickCheck

@@ -38,7 +38,7 @@ instance Show Table where
     show (Table (tableTypes, tableValues)) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))
 
 instance Binary Table where
-    put (Table (tableTypes, tableValues)) = put tableTypes >> foldl (>>) mempty (foldl (>>) mempty $ map (map put) $ map unwrap tableValues)
+    put (Table (tableTypes, tableValues)) = put tableTypes >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unwrap) tableValues)
 
     get = do tableTypes <- get :: Get [(String, AType)]
              tableValues <- getPolyTypes $ map snd tableTypes
