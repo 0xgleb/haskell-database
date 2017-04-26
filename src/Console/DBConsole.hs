@@ -1,5 +1,7 @@
 module Console.DBConsole
-( workWithDB
+( eval
+, toBinOp
+, workWithDB
 ) where
 
 import Engine.Functions.DB
