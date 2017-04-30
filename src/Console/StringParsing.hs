@@ -5,11 +5,16 @@ module Console.StringParsing
 , toType
 , toTuple
 , toTruple
+, eval
+, toBinOp
+, parseQuery
 ) where
 
 import Common.String
-import Engine.Types.Table.PolyType
-import Engine.Types.Table.AType
+import Common.Maybe
+import Control.Monad
+import Engine.Types.Table
+import Engine.Functions.Table
 import Data.List (foldl')
 
 polyRead :: AType -> String -> PolyType
@@ -50,3 +55,33 @@ readSomething str = tmpReadSomething str possibleTypes
                     where 
                         tmpReadSomething str (x:xs) = polyRead x str <|> tmpReadSomething str xs
                         tmpReadSomething _ [] = Invalid
+
+toBinOp :: Ord a => String -> Maybe (a -> a -> Bool)
+toBinOp "==" = Just (==)
+toBinOp "<=" = Just (<=)
+toBinOp ">=" = Just (>=)
+toBinOp "<"  = Just (<)
+toBinOp ">"  = Just (>)
+toBinOp "/=" = Just (/=)
+toBinOp _    = Nothing
+
+eval :: [(String, AType)] -> String -> Row -> Maybe PolyType
+eval types str = polyToMaybePoly . (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unwrap . values <$>) . select [str] . Table types . return
+                 where
+                     maybePolyToPoly (Just x) = x
+                     maybePolyToPoly _        = Invalid
+                     polyToMaybePoly Invalid = Nothing
+                     polyToMaybePoly x       = Just x
+
+parseQuery :: [(String, String)] -> Table -> Maybe Table
+parseQuery []                        = return
+parseQuery (("select", '(':rest):xs) = select (split ',' $ rm ' ' $ init rest) >=> parseQuery xs
+parseQuery (("select", arg):xs)      = select [arg] >=> parseQuery xs
+parseQuery (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
+                                            case safeArgs of
+                                              Just (x, o, y) -> let func = (\f t r -> maybeBoolToBool $ liftM2 f (eval t x r) (eval t y r)) <$> toBinOp o in
+                                                                    case func of
+                                                                      Just f  -> parseQuery xs <=< return . where_ f
+                                                                      Nothing -> \_ -> Nothing
+                                              _              -> \_ -> Nothing
+parseQuery _ = \_ -> Nothing

@@ -1,7 +1,5 @@
 module Console.DBConsole
-( eval
-, toBinOp
-, workWithDB
+( workWithDB
 ) where
 
 import Engine.Functions.DB
@@ -9,6 +7,7 @@ import Engine.Functions.Table
 import qualified Engine.Types.Table.Table as TT
 import Engine.Types.Table.PolyType
 
+import Data.Maybe (isJust)
 import Common.Maybe
 import Common.String
 import Console.StringParsing
@@ -17,34 +16,8 @@ import Control.Monad
 import System.IO
 import System.Directory
 
-toBinOp :: Ord a => String -> Maybe (a -> a -> Bool)
-toBinOp "==" = Just (==)
-toBinOp "<=" = Just (<=)
-toBinOp ">=" = Just (>=)
-toBinOp "<"  = Just (<)
-toBinOp ">"  = Just (>)
-toBinOp "/=" = Just (/=)
-toBinOp _    = Nothing
-
-eval :: [(String, AType)] -> String -> TT.Row -> Maybe PolyType
-eval types str = polyToMaybe . (readSomething str <|>) . maybePolyToPoly . (safeHead <=< safeHead) . map TT.unwrap . TT.values . select [str] . TT.Table types . return
-                 where
-                     maybePolyToPoly (Just x) = x
-                     maybePolyToPoly _        = Invalid
-                     polyToMaybe Invalid = Nothing
-                     polyToMaybe x       = Just x
-
 getQuery :: DB -> [(String, String)] -> String -> IO (Maybe TT.Table)
-getQuery db args target = ((composer args <*>) . return) <$> from db target
-    where
-        composer []                        = Just id
-        composer (("select", '(':rest):xs) = liftM2 (.) (Just $ select (split ',' $ rm ' ' $ init rest)) (composer xs)
-        composer (("select", arg):xs)      = liftM2 (.) (Just $ select [arg]) (composer xs)
-        composer (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
-                                                    case safeArgs of
-                                                      Just (x, o, y) -> liftM2 (.) (composer xs) (where_ <$> ((\f t r -> maybeBoolToBool $ liftM2 f (eval t x r) (eval t y r)) <$> toBinOp o))
-                                                      _              -> Nothing
-        composer _ = Nothing
+getQuery db args target = parseQuery args <$> from db target
 
 printMaybeTable :: Maybe TT.Table -> IO ()
 printMaybeTable (Just table) = print table

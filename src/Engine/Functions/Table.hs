@@ -24,9 +24,11 @@ import Data.Binary
 toPath :: DB -> TT.TableName -> FilePath
 toPath db = (("./.databases/" ++ db ++ "/") ++) . (++ ".table")
 
-select :: [String] -> TT.Table -> TT.Table
-select names (TT.Table fields values) = let getElems list = foldl (\p f -> p ++ [f list]) [] $ map (flip (!!)) $ join $ map (maybeToList . flip elemIndex (map fst fields)) names in
-                                               TT.Table (getElems fields) (map (TT.Row . getElems . TT.unwrap) values)
+select :: [String] -> TT.Table -> Maybe TT.Table
+select names (TT.Table fields values) = if length functionsList == length names then Just $ TT.Table (getElems fields) (map (TT.Row . getElems . TT.unwrap) values) else Nothing
+    where 
+        functionsList = join $ map (maybeToList . flip elemIndex (map fst fields)) names
+        getElems list = foldl (\p f -> p ++ [f list]) [] $ map (flip (!!)) functionsList
 
 where_ :: ([(String, TT.AType)] -> TT.Row -> Bool) -> TT.Table -> TT.Table
 where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
