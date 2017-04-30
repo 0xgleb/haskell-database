@@ -5,14 +5,16 @@ module Engine.Types.Table.Table
 , TableName
 , types
 , values
+, tableProduct
 ) where
 
 import Data.Binary
 import Data.Binary.Get (isEmpty)
-import Data.List (foldl')
+import Data.List (foldl', transpose)
 
 import Engine.Types.Table.PolyType
 
+import Control.Monad (join)
 import Control.Monad.Extra (ifM)
 
 newtype Row = Row [PolyType]
@@ -33,6 +35,9 @@ types (Table tableTypes _) = tableTypes
 
 values :: Table -> [Row]
 values (Table _ tableValues) = tableValues
+
+tableProduct :: [(String, Table)] -> Table
+tableProduct tables = Table (join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ types table) (map snd $ types table)) tables) (map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unwrap . values . snd) tables)
 
 instance Show Table where
     show (Table tableTypes tableValues) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))

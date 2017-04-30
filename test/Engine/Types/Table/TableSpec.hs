@@ -40,6 +40,17 @@ spec = do
     describe "instance Binary Table" $ do
         it "holds on property decode . encode == id" $
             property $ \x -> length (types x) /= 0 ==> (decode (encode x) :: Table) == x
+    describe "tableProduct" $ do
+        let tables = [ ("table1", Table [("name1", IntType), ("name2", StringType)] [Row [PolyInt 1, PolyString "str1"], Row [PolyInt 2, PolyString "str2"]])
+                     , ("table2", Table [("name1", IntType), ("name2", StringType)] [Row [PolyInt 1, PolyString "str1"], Row [PolyInt 2, PolyString "str2"]])
+                     ]
+        it "takes a list of tables and merges into one huge table" $ do
+            tableProduct tables `shouldBe` Table [("table1.name1", IntType), ("table1.name2", StringType), ("table2.name1", IntType), ("table2.name2", StringType)]
+                                                 [ Row [PolyInt 1, PolyString "str1", PolyInt 1, PolyString "str1"]
+                                                 , Row [PolyInt 1, PolyString "str1", PolyInt 2, PolyString "str2"]
+                                                 , Row [PolyInt 2, PolyString "str2", PolyInt 1, PolyString "str1"]
+                                                 , Row [PolyInt 2, PolyString "str2", PolyInt 2, PolyString "str2"]
+                                                 ]
 
 main :: IO ()
 main = hspec spec

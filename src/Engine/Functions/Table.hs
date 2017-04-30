@@ -35,6 +35,8 @@ where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
 
 from :: DB -> TT.TableName -> IO TT.Table
 from db table = (decode :: BL.ByteString -> TT.Table) <$> BL.readFile (toPath db table)
+    where
+        rmDuplicates (x:xs) = x : rmDuplicates (filter (/= x) xs)
 
 tableTypes :: DB -> TT.TableName -> IO [(String, TT.AType)]
 tableTypes db table = TT.types <$> from db table
