@@ -65,23 +65,23 @@ toBinOp ">"  = Just (>)
 toBinOp "/=" = Just (/=)
 toBinOp _    = Nothing
 
-eval :: [(String, AType)] -> String -> Row -> Maybe PolyType
-eval types str = polyToMaybePoly . (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unwrap . values <$>) . select [str] . Table types . return
+eval :: [(String, AType)] -> String -> Row -> PolyType
+eval types str = (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unwrap . values <$>) . select [str] . Table types . return
                  where
                      maybePolyToPoly (Just x) = x
                      maybePolyToPoly _        = Invalid
-                     polyToMaybePoly Invalid = Nothing
-                     polyToMaybePoly x       = Just x
 
 parseQuery :: [(String, String)] -> Table -> Maybe Table
 parseQuery []                        = return
-parseQuery (("select", '(':rest):xs) = select (split ',' $ rm ' ' $ init rest) >=> parseQuery xs
-parseQuery (("select", arg):xs)      = select [arg] >=> parseQuery xs
+parseQuery (("select", '(':rest):xs) = parseQuery xs >=> select (split ',' $ rm ' ' $ init rest)
+parseQuery (("select", arg):xs)      = parseQuery xs >=> select [arg]
 parseQuery (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
                                             case safeArgs of
-                                              Just (x, o, y) -> let func = (\f t r -> maybeBoolToBool $ liftM2 f (eval t x r) (eval t y r)) <$> toBinOp o in
+                                              Just (x, o, y) -> let func = (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o in
                                                                     case func of
-                                                                      Just f  -> parseQuery xs <=< return . where_ f
+                                                                      Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (types table)) && (readSomething y /= Invalid || y `elem` map fst (types table)) 
+                                                                                              then (parseQuery xs >=> return . where_ f) table
+                                                                                              else Nothing
                                                                       Nothing -> \_ -> Nothing
                                               _              -> \_ -> Nothing
 parseQuery _ = \_ -> Nothing

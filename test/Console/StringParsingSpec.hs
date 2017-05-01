@@ -68,15 +68,15 @@ spec = do
     describe "eval" $ do
         context "when passed a value" $ do
             it "parses the value using readSomething" $ do
-                eval [] "False" (Row []) `shouldBe` Just (PolyBool False)
-                eval [] "12345" (Row []) `shouldBe` Just (PolyInt 12345)
-                eval [] "12.34" (Row []) `shouldBe` Just (PolyFloat 12.34)
-                eval [] "\"s\"" (Row []) `shouldBe` Just (PolyString "s")
-                eval [] "inval" (Row []) `shouldBe` Nothing
+                eval [] "False" (Row []) `shouldBe` PolyBool False
+                eval [] "12345" (Row []) `shouldBe` PolyInt 12345
+                eval [] "12.34" (Row []) `shouldBe` PolyFloat 12.34
+                eval [] "\"s\"" (Row []) `shouldBe` PolyString "s"
+                eval [] "inval" (Row []) `shouldBe` Invalid
         context "when passed a field name" $ do
             it "takes the value of the field from given Row" $ do
-                eval [("name", IntType)] "name" (Row [PolyInt 15]) `shouldBe` Just (PolyInt 15)
-                eval [("name1", IntType), ("name2", StringType)] "name2" (Row [PolyInt 15, PolyString "str"]) `shouldBe` Just (PolyString "str")
+                eval [("name", IntType)] "name" (Row [PolyInt 15]) `shouldBe` PolyInt 15
+                eval [("name1", IntType), ("name2", StringType)] "name2" (Row [PolyInt 15, PolyString "str"]) `shouldBe` PolyString "str"
     describe "parseQuery" $ do
         let table = Table [("id", IntType), ("name", StringType)] [Row [PolyInt 1, PolyString "name1"], Row [PolyInt 2, PolyString "name2"]]
         context "when an invalid command was passed" $ do
@@ -100,7 +100,13 @@ spec = do
                 it "returns Nothing" $ do
                     parseQuery [("where", ">= 1234")] table `shouldBe` Nothing
                     parseQuery [("where", "sd >= 0")] table `shouldBe` Nothing
-
+                    parseQuery [("where", "0 >= sd")] table `shouldBe` Nothing
+                    parseQuery [("where", "0 ?? id")] table `shouldBe` Nothing
+        context "when several functions were used" $ do
+            it "composes functions starting from the end of the list" $ do
+                parseQuery [("select", "name"), ("where", "(id /= 1)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name2"]])
+                parseQuery [("where", "(name == \"name1\")"), ("select", "name")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
+                parseQuery [("where", "(name == \"name1\")"), ("select", "name"), ("where", "(id /= 0)"), ("select", "(id, name)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
 
 main :: IO ()
 main = hspec spec
