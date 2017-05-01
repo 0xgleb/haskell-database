@@ -17,7 +17,7 @@ import System.IO
 import System.Directory
 
 getQuery :: DB -> [(String, String)] -> String -> IO (Maybe TT.Table)
-getQuery db args target = parseQuery args <$> from db target
+getQuery db args target = parseGetQuery args <$> from db target
 
 printMaybeTable :: Maybe TT.Table -> IO ()
 printMaybeTable (Just table) = print table

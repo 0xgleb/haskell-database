@@ -7,7 +7,7 @@ module Console.StringParsing
 , toTruple
 , eval
 , toBinOp
-, parseQuery
+, parseGetQuery
 ) where
 
 import Common.String
@@ -71,17 +71,17 @@ eval types str = (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . 
                      maybePolyToPoly (Just x) = x
                      maybePolyToPoly _        = Invalid
 
-parseQuery :: [(String, String)] -> Table -> Maybe Table
-parseQuery []                        = return
-parseQuery (("select", '(':rest):xs) = parseQuery xs >=> select (split ',' $ rm ' ' $ init rest)
-parseQuery (("select", arg):xs)      = parseQuery xs >=> select [arg]
-parseQuery (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
+parseGetQuery :: [(String, String)] -> Table -> Maybe Table
+parseGetQuery []                        = return
+parseGetQuery (("select", '(':rest):xs) = parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest)
+parseGetQuery (("select", arg):xs)      = parseGetQuery xs >=> select [arg]
+parseGetQuery (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
                                             case safeArgs of
                                               Just (x, o, y) -> let func = (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o in
                                                                     case func of
                                                                       Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (types table)) && (readSomething y /= Invalid || y `elem` map fst (types table)) 
-                                                                                              then (parseQuery xs >=> return . where_ f) table
+                                                                                              then (parseGetQuery xs >=> return . where_ f) table
                                                                                               else Nothing
                                                                       Nothing -> \_ -> Nothing
                                               _              -> \_ -> Nothing
-parseQuery _ = \_ -> Nothing
+parseGetQuery _ = \_ -> Nothing

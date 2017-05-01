@@ -77,36 +77,36 @@ spec = do
             it "takes the value of the field from given Row" $ do
                 eval [("name", IntType)] "name" (Row [PolyInt 15]) `shouldBe` PolyInt 15
                 eval [("name1", IntType), ("name2", StringType)] "name2" (Row [PolyInt 15, PolyString "str"]) `shouldBe` PolyString "str"
-    describe "parseQuery" $ do
+    describe "parseGetQuery" $ do
         let table = Table [("id", IntType), ("name", StringType)] [Row [PolyInt 1, PolyString "name1"], Row [PolyInt 2, PolyString "name2"]]
         context "when an invalid command was passed" $ do
             it "returns Nothing" $ do
-                parseQuery [("inval", "something")] table `shouldBe` Nothing
+                parseGetQuery [("inval", "something")] table `shouldBe` Nothing
         context "when select is used" $ do
             context "when passed valid name(s)" $ do
                 it "returns result of select function applied on the table" $ do
-                    parseQuery [("select", "id")]         table `shouldBe` Just (Table [("id", IntType)] [Row [PolyInt 1], Row [PolyInt 2]])
-                    parseQuery [("select", "(id, name)")] table `shouldBe` Just table
+                    parseGetQuery [("select", "id")]         table `shouldBe` Just (Table [("id", IntType)] [Row [PolyInt 1], Row [PolyInt 2]])
+                    parseGetQuery [("select", "(id, name)")] table `shouldBe` Just table
             context "when  passed invalid name(s)" $ do
                 it "returns Nothing" $ do
-                    parseQuery [("select", "invalid?")] table `shouldBe` Nothing
-                    parseQuery [("select", "(id, a?)")] table `shouldBe` Nothing
+                    parseGetQuery [("select", "invalid?")] table `shouldBe` Nothing
+                    parseGetQuery [("select", "(id, a?)")] table `shouldBe` Nothing
         context "when where is used" $ do
             context "when passed a valid where expression" $ do
                 it "returns result of select function applied on the table" $ do
-                    parseQuery [("where", "(id /= 1)")]           table `shouldBe` Just (Table [("id", IntType), ("name", StringType)] [Row [PolyInt 2, PolyString "name2"]])
-                    parseQuery [("where", "(name == \"name1\")")] table `shouldBe` Just (Table [("id", IntType), ("name", StringType)] [Row [PolyInt 1, PolyString "name1"]])
+                    parseGetQuery [("where", "(id /= 1)")]           table `shouldBe` Just (Table [("id", IntType), ("name", StringType)] [Row [PolyInt 2, PolyString "name2"]])
+                    parseGetQuery [("where", "(name == \"name1\")")] table `shouldBe` Just (Table [("id", IntType), ("name", StringType)] [Row [PolyInt 1, PolyString "name1"]])
             context "when passed an invalid where expression" $ do
                 it "returns Nothing" $ do
-                    parseQuery [("where", ">= 1234")] table `shouldBe` Nothing
-                    parseQuery [("where", "sd >= 0")] table `shouldBe` Nothing
-                    parseQuery [("where", "0 >= sd")] table `shouldBe` Nothing
-                    parseQuery [("where", "0 ?? id")] table `shouldBe` Nothing
+                    parseGetQuery [("where", ">= 1234")] table `shouldBe` Nothing
+                    parseGetQuery [("where", "sd >= 0")] table `shouldBe` Nothing
+                    parseGetQuery [("where", "0 >= sd")] table `shouldBe` Nothing
+                    parseGetQuery [("where", "0 ?? id")] table `shouldBe` Nothing
         context "when several functions were used" $ do
             it "composes functions starting from the end of the list" $ do
-                parseQuery [("select", "name"), ("where", "(id /= 1)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name2"]])
-                parseQuery [("where", "(name == \"name1\")"), ("select", "name")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
-                parseQuery [("where", "(name == \"name1\")"), ("select", "name"), ("where", "(id /= 0)"), ("select", "(id, name)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
+                parseGetQuery [("select", "name"), ("where", "(id /= 1)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name2"]])
+                parseGetQuery [("where", "(name == \"name1\")"), ("select", "name")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
+                parseGetQuery [("where", "(name == \"name1\")"), ("select", "name"), ("where", "(id /= 0)"), ("select", "(id, name)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
 
 main :: IO ()
 main = hspec spec
