@@ -33,13 +33,11 @@ select names (TT.Table fields values) = if length functionsList == length names 
 where_ :: ([(String, TT.AType)] -> TT.Row -> Bool) -> TT.Table -> TT.Table
 where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
 
-from :: DB -> TT.TableName -> IO TT.Table
-from db table = (decode :: BL.ByteString -> TT.Table) <$> BL.readFile (toPath db table)
-    where
-        rmDuplicates (x:xs) = x : rmDuplicates (filter (/= x) xs)
+from :: DB -> [TT.TableName] -> IO TT.Table
+from db tables = fmap (TT.tableProduct . zipWith (,) tables) $ mapM (((decode :: BL.ByteString -> TT.Table) <$>) . BL.readFile . toPath db) tables
 
 tableTypes :: DB -> TT.TableName -> IO [(String, TT.AType)]
-tableTypes db table = TT.types <$> from db table
+tableTypes db table = TT.types <$> from db [table]
 
 to :: DB -> TT.TableName -> TT.Row -> IO Bool
 to db table newData = if filter (== TT.Invalid) (TT.unwrap newData) == []

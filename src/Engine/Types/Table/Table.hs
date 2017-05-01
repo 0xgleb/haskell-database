@@ -10,7 +10,7 @@ module Engine.Types.Table.Table
 
 import Data.Binary
 import Data.Binary.Get (isEmpty)
-import Data.List (foldl', transpose)
+import Data.List (foldl')
 
 import Engine.Types.Table.PolyType
 

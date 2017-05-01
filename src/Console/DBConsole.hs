@@ -16,12 +16,16 @@ import Control.Monad
 import System.IO
 import System.Directory
 
-getQuery :: DB -> [(String, String)] -> String -> IO (Maybe TT.Table)
-getQuery db args target = parseGetQuery args <$> from db target
+getQuery :: DB -> [(String, String)] -> [TT.TableName] -> IO (Maybe TT.Table)
+getQuery db args targets = parseGetQuery args <$> from db targets
 
 printMaybeTable :: Maybe TT.Table -> IO ()
 printMaybeTable (Just table) = print table
 printMaybeTable Nothing      = putStrLn "Invalid query!"
+
+rmDuplicates :: Eq a => [a] -> [a]
+rmDuplicates []     = []
+rmDuplicates (x:xs) = x : rmDuplicates (filter (/= x) xs)
 
 workWithDB :: DB -> IO ()
 workWithDB db = do
@@ -40,7 +44,7 @@ workWithDB db = do
            exist <- doesFileExist $ toPath db target
            case (head args) of
              "types"  -> if exist then tableTypes db target >>= print >> next else putStrLn "This table doesn't exist!" >> next
-             "read"   -> if exist then from db target       >>= print >> next else putStrLn "This table doesn't exist!" >> next
+             "read"   -> if exist then from db [target]     >>= print >> next else putStrLn "This table doesn't exist!" >> next
              "drop"   -> if exist then dropTable db target            >> next else putStrLn "This table doesn't exist!" >> next
              "create" -> do
                  let safeTypes = map toType <$> (sequence $ map (toTuple . split ':') $ split ',' $ join $ tail $ tail args) in
@@ -53,6 +57,6 @@ workWithDB db = do
              _ -> let safeArgs = sequence $ map (toTuple . split '#') args in
                       case safeArgs of
                         (Just tuples) -> case (fst $ last tuples) of
-                                           "from" -> getQuery db (init tuples) (snd $ last tuples) >>= printMaybeTable >> next
+                                           "from" -> getQuery db (init tuples) (rmDuplicates $ split ',' $ snd $ last tuples) >>= printMaybeTable >> next
                                            _      -> print (fst $ last tuples) >> putStrLn "Invalid query!" >> next
                         Nothing       -> putStrLn "Invalid query!" >> next

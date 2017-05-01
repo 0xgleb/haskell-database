@@ -104,7 +104,7 @@ spec = do
                     parseGetQuery [("where", "0 ?? id")] table `shouldBe` Nothing
         context "when several functions were used" $ do
             it "composes functions starting from the end of the list" $ do
-                parseGetQuery [("select", "name"), ("where", "(id /= 1)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name2"]])
+                parseGetQuery [("select", "name"), ("where", "(id /= 1)")]           table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name2"]])
                 parseGetQuery [("where", "(name == \"name1\")"), ("select", "name")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
                 parseGetQuery [("where", "(name == \"name1\")"), ("select", "name"), ("where", "(id /= 0)"), ("select", "(id, name)")] table `shouldBe` Just (Table [("name", StringType)] [Row [PolyString "name1"]])
 
