@@ -18,6 +18,13 @@ spec = do
         context "when the list is empty" $ do
             it "returns Nothing" $ do
                 safeHead ([] :: [Int]) `shouldBe` Nothing
+    describe "maybeBoolToBool" $ do
+        context "the argument is Nothing" $ do
+            it "returns False" $ do
+                maybeBoolToBool Nothing `shouldBe` False
+        context "argument is Just boolean" $ do
+            it "returns boolean" $ do
+                property $ \x -> maybeBoolToBool (Just x) == x
 
 main :: IO ()
 main = hspec spec

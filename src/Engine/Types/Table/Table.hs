@@ -25,24 +25,24 @@ instance Show Row where
     show (Row values) = show values
 
 type TableName = String
-newtype Table = Table ([(String, AType)], [Row])
+data Table = Table [(String, AType)] [Row]
     deriving Eq
 
 types :: Table -> [(String, AType)]
-types (Table (tableTypes, _)) = tableTypes
+types (Table tableTypes _) = tableTypes
 
 values :: Table -> [Row]
-values (Table (_, tableValues)) = tableValues
+values (Table _ tableValues) = tableValues
 
 instance Show Table where
-    show (Table (tableTypes, tableValues)) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))
+    show (Table tableTypes tableValues) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))
 
 instance Binary Table where
-    put (Table (tableTypes, tableValues)) = put tableTypes >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unwrap) tableValues)
+    put (Table tableTypes tableValues) = put tableTypes >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unwrap) tableValues)
 
     get = do tableTypes <- get :: Get [(String, AType)]
              tableValues <- getPolyTypes $ map snd tableTypes
-             return $ Table (tableTypes, tableValues)
+             return $ Table tableTypes tableValues
                  where
                      getPolyTypes tableTypes = ifM isEmpty (return []) (((:) <$> (fmap Row $ getRow tableTypes)) <*> getPolyTypes tableTypes)
 

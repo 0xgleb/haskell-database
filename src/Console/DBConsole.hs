@@ -17,32 +17,38 @@ import Control.Monad
 import System.IO
 import System.Directory
 
-toBinOp :: Ord a => String -> (a -> a -> Bool)
-toBinOp "==" = (==)
-toBinOp "<=" = (<=)
-toBinOp ">=" = (>=)
-toBinOp "<"  = (<)
-toBinOp ">"  = (>)
-toBinOp "/=" = (/=)
-toBinOp _    = \_ _ -> False
+toBinOp :: Ord a => String -> Maybe (a -> a -> Bool)
+toBinOp "==" = Just (==)
+toBinOp "<=" = Just (<=)
+toBinOp ">=" = Just (>=)
+toBinOp "<"  = Just (<)
+toBinOp ">"  = Just (>)
+toBinOp "/=" = Just (/=)
+toBinOp _    = Nothing
 
-eval :: [(String, AType)] -> String -> (TT.Row -> PolyType)
-eval types str = (readSomething str <|>) . maybePolyToPoly . (safeHead >=> safeHead) . map TT.unwrap . select types [str] . return
+eval :: [(String, AType)] -> String -> TT.Row -> Maybe PolyType
+eval types str = polyToMaybe . (readSomething str <|>) . maybePolyToPoly . (safeHead <=< safeHead) . map TT.unwrap . TT.values . select [str] . TT.Table types . return
                  where
                      maybePolyToPoly (Just x) = x
                      maybePolyToPoly _        = Invalid
+                     polyToMaybe Invalid = Nothing
+                     polyToMaybe x       = Just x
 
-getQuery :: DB -> [(String, String)] -> String -> IO [TT.Row]
-getQuery db args target = (\table -> composer (TT.types table) args (TT.values table)) <$> from db target
+getQuery :: DB -> [(String, String)] -> String -> IO (Maybe TT.Table)
+getQuery db args target = ((composer args <*>) . return) <$> from db target
     where
-        composer types [] = id
-        composer types (("select", '(':rest):xs) = select types (split ',' $ rm ' ' $ init rest) . composer types xs
-        composer types (("select", arg):xs) = select types [arg] . composer types xs
-        composer types (("where", params):xs) = let safeArgs = toTruple $ split ' ' $ init $ tail params in
+        composer []                        = Just id
+        composer (("select", '(':rest):xs) = liftM2 (.) (Just $ select (split ',' $ rm ' ' $ init rest)) (composer xs)
+        composer (("select", arg):xs)      = liftM2 (.) (Just $ select [arg]) (composer xs)
+        composer (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
                                                     case safeArgs of
-                                                      Just (x, o, y) -> composer types xs . \l -> filter (\el -> toBinOp o (eval types x el) (eval types y el)) l
-                                                      _              -> composer types xs . \l -> []
-        composer _ _ = \_ -> []
+                                                      Just (x, o, y) -> liftM2 (.) (composer xs) (where_ <$> ((\f t r -> maybeBoolToBool $ liftM2 f (eval t x r) (eval t y r)) <$> toBinOp o))
+                                                      _              -> Nothing
+        composer _ = Nothing
+
+printMaybeTable :: Maybe TT.Table -> IO ()
+printMaybeTable (Just table) = print table
+printMaybeTable Nothing      = putStrLn "Invalid query!"
 
 workWithDB :: DB -> IO ()
 workWithDB db = do
@@ -74,6 +80,6 @@ workWithDB db = do
              _ -> let safeArgs = sequence $ map (toTuple . split '#') args in
                       case safeArgs of
                         (Just tuples) -> case (fst $ last tuples) of
-                                           "from" -> getQuery db (init tuples) (snd $ last tuples) >>= putStrLn . show >> next
+                                           "from" -> getQuery db (init tuples) (snd $ last tuples) >>= printMaybeTable >> next
                                            _      -> print (fst $ last tuples) >> putStrLn "Invalid query!" >> next
                         Nothing       -> putStrLn "Invalid query!" >> next

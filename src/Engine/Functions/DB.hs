@@ -36,7 +36,7 @@ ls :: IO [FilePath]
 ls = listDirectory $ toDBPath ""
 
 createTable :: DB -> TableName -> [(String, AType)] -> IO ()
-createTable db table types = BL.writeFile (toPath db table) $ encode $ Table (types, [])
+createTable db table types = BL.writeFile (toPath db table) $ encode $ Table types []
 
 dropTable :: DB -> TableName -> IO Bool
 dropTable db table = do

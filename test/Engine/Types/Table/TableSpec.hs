@@ -13,7 +13,7 @@ instance Arbitrary Table where
     arbitrary = do
         fields <- arbitrary :: Gen [(String, AType)]
         values <- getValues $ map snd fields
-        return $ Table (fields, values)
+        return $ Table fields values
             where
                 getRow :: [AType] -> Gen Row
                 getRow [] = return $ Row []
@@ -33,10 +33,10 @@ spec = do
             property $ \l -> unwrap (Row l) == l
     describe "types" $ do
         it "takes Table and returns list of pairs (name, type)" $ do
-            property $ \(Table (tableTypes, tableValues)) -> types (Table (tableTypes, tableValues)) == tableTypes
+            property $ \(Table tableTypes tableValues) -> types (Table tableTypes tableValues) == tableTypes
     describe "values" $ do
         it "takes Table and returns list of rows" $ do
-            property $ \(Table (tableTypes, tableValues)) -> values (Table (tableTypes, tableValues)) == tableValues
+            property $ \(Table tableTypes tableValues) -> values (Table tableTypes tableValues) == tableValues
     describe "instance Binary Table" $ do
         it "holds on property decode . encode == id" $
             property $ \x -> length (types x) /= 0 ==> (decode (encode x) :: Table) == x

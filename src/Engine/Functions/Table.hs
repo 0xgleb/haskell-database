@@ -24,11 +24,12 @@ import Data.Binary
 toPath :: DB -> TT.TableName -> FilePath
 toPath db = (("./.databases/" ++ db ++ "/") ++) . (++ ".table")
 
-select :: [(String, TT.AType)] -> [String] -> ([TT.Row] -> [TT.Row])
-select types names = map TT.Row . map (\row -> foldl (\p f -> p ++ [f row]) [] $ map (flip (!!)) $ join $ map (maybeToList . flip elemIndex (map fst types)) names) . map TT.unwrap
+select :: [String] -> TT.Table -> TT.Table
+select names (TT.Table fields values) = let getElems list = foldl (\p f -> p ++ [f list]) [] $ map (flip (!!)) $ join $ map (maybeToList . flip elemIndex (map fst fields)) names in
+                                               TT.Table (getElems fields) (map (TT.Row . getElems . TT.unwrap) values)
 
-where_ :: (TT.Row -> Bool) -> ([TT.Row] -> [TT.Row])
-where_ f = filter f
+where_ :: ([(String, TT.AType)] -> TT.Row -> Bool) -> TT.Table -> TT.Table
+where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
 
 from :: DB -> TT.TableName -> IO TT.Table
 from db table = (decode :: BL.ByteString -> TT.Table) <$> BL.readFile (toPath db table)
