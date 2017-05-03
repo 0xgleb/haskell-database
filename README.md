@@ -1,6 +1,3 @@
-# TODO:
+# Haskell-Database
 
-1. Select with multiple arguments -- done
-2. Binary files -- in progress
-3. Navigation with arrow keys and deleting characters with backspace
-4. Client side
+Haskell-Database is a relational type safe database built with haskell. It has a library, console app, and it will have a browser app.
