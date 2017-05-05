@@ -75,13 +75,12 @@ parseGetQuery :: [(String, String)] -> Table -> Maybe Table
 parseGetQuery []                        = return
 parseGetQuery (("select", '(':rest):xs) = parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest)
 parseGetQuery (("select", arg):xs)      = parseGetQuery xs >=> select [arg]
-parseGetQuery (("where", params):xs)    = let safeArgs = toTruple $ split ' ' $ init $ tail params in
-                                            case safeArgs of
-                                              Just (x, o, y) -> let func = (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o in
-                                                                    case func of
-                                                                      Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (types table)) && (readSomething y /= Invalid || y `elem` map fst (types table)) 
+parseGetQuery (("where", params):xs)    = case toTruple $ split ' ' $ init $ tail params of
+                                            Nothing              -> \_ -> Nothing
+                                            Just (x, o, y) -> case (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o of
+                                                                Nothing -> \_ -> Nothing
+                                                                Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (types table)) 
+                                                                                     && (readSomething y /= Invalid || y `elem` map fst (types table))
                                                                                               then (parseGetQuery xs >=> return . where_ f) table
                                                                                               else Nothing
-                                                                      Nothing -> \_ -> Nothing
-                                              _              -> \_ -> Nothing
 parseGetQuery _ = \_ -> Nothing

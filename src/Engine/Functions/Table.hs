@@ -19,6 +19,7 @@ import Data.List (elemIndex)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as BS
 import System.IO
+import System.IO.Error
 import Data.Binary
 
 toPath :: DB -> TT.TableName -> FilePath
@@ -34,12 +35,13 @@ where_ :: ([(String, TT.AType)] -> TT.Row -> Bool) -> TT.Table -> TT.Table
 where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
 
 from :: DB -> [TT.TableName] -> IO TT.Table
-from db tables = fmap (TT.tableProduct . zipWith (,) tables) $ mapM (((decode :: BL.ByteString -> TT.Table) <$>) . BL.readFile . toPath db) tables
+from db tables = catchIOError (fmap (TT.tableProduct . zipWith (,) tables) $ mapM (((decode :: BL.ByteString -> TT.Table) <$>) . BL.readFile . toPath db) tables)
+                              (\_ -> putStrLn ("An error occured while reading from the tables: " ++ (foldl ((++) . (++ " ")) "" tables) ++ "!") >> return (TT.Table [] []))
 
 tableTypes :: DB -> TT.TableName -> IO [(String, TT.AType)]
-tableTypes db table = TT.types <$> from db [table]
+tableTypes db table = (TT.types <$> from db [table]) `catchIOError` (\_ -> putStrLn ("An error occured while reading types of the table " ++ table ++ "!") >> return [])
 
 to :: DB -> TT.TableName -> TT.Row -> IO Bool
-to db table newData = if filter (== TT.Invalid) (TT.unwrap newData) == []
-                         then BL.appendFile (toPath db table) (BL.concat $ map encode $ TT.unwrap newData) >> return True
-                         else return False
+to db table newData = if filter (== TT.Invalid) (TT.unwrap newData) /= [] then return False
+                                                                          else catchIOError (BL.appendFile (toPath db table) (BL.concat $ map encode $ TT.unwrap newData)    >> return True) 
+                                                                                            (\_ -> putStrLn ("An error occured while writing to the table " ++ table ++ "!") >> return False)
