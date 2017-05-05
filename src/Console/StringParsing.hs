@@ -3,8 +3,6 @@ module Console.StringParsing
 , parse
 , readSomething
 , toType
-, toTuple
-, toTruple
 , eval
 , toBinOp
 , parseGetQuery
@@ -34,14 +32,6 @@ polyRead _ _ = Invalid
 
 parse :: [AType] -> [String] -> [PolyType]
 parse = zipWith polyRead
-
-toTuple :: [a] -> Maybe (a, a)
-toTuple (x:y:[]) = Just (x, y)
-toTuple _        = Nothing
-
-toTruple :: [a] -> Maybe (a, a, a)
-toTruple (x:y:z:[]) = Just (x, y, z)
-toTruple _          = Nothing
 
 toType :: (String, String) -> (String, AType)
 toType (name, "Bool")   = (name, BoolType)
@@ -75,10 +65,10 @@ parseGetQuery :: [(String, String)] -> Table -> Maybe Table
 parseGetQuery []                        = return
 parseGetQuery (("select", '(':rest):xs) = parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest)
 parseGetQuery (("select", arg):xs)      = parseGetQuery xs >=> select [arg]
-parseGetQuery (("where", params):xs)    = case toTruple $ split ' ' $ init $ tail params of
-                                            Nothing              -> \_ -> Nothing
+parseGetQuery (("where", params):xs)    = case toTrine $ split ' ' $ init $ tail params of
+                                            Nothing        -> \_ -> Nothing
                                             Just (x, o, y) -> case (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o of
-                                                                Nothing -> \_ -> Nothing
+                                                                Nothing -> \_ -> Nothing 
                                                                 Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (types table)) 
                                                                                      && (readSomething y /= Invalid || y `elem` map fst (types table))
                                                                                               then (parseGetQuery xs >=> return . where_ f) table

@@ -27,20 +27,6 @@ spec = do
     describe "parse" $ do
         it "takes a list of types and a list strings and parse each string with respective type" $ do
             property $ \b i f s -> parse [BoolType, IntType, FloatType, StringType] [show b, show i, show f, show s] == [PolyBool b, PolyInt i, PolyFloat f, PolyString s]
-    describe "toTuple" $ do
-        context "when passed list has exactly 2 elements" $ do
-            it "returns Just tuple with this 2 elements" $ do
-                property $ \x1 x2 -> toTuple ([x1, x2] :: [Int]) == Just (x1, x2)
-        context "when passed list has more or less than 2 elements" $ do
-            it "returns Nothing" $ do
-                property $ \l -> length (l :: [Int]) /= 2 ==> toTuple l == Nothing
-    describe "toTruple" $ do
-        context "when passed list has exactly 3 elements" $ do
-            it "returns Just tuple with this 3 elements" $ do
-                property $ \x1 x2 x3 -> toTruple ([x1, x2, x3] :: [Int]) == Just (x1, x2, x3)
-        context "when passed list has more or less than 3 elements" $ do
-            it "returns Nothing" $ do
-                property $ \l -> length (l :: [Int]) /= 3 ==> toTruple l == Nothing
     describe "toType" $ do
         it "takes a pair of strings, parses second string as a type and returns new tuple" $ do
             toType ("name", "Bool")   `shouldBe` ("name", BoolType)

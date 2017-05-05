@@ -25,6 +25,20 @@ spec = do
         context "argument is Just boolean" $ do
             it "returns boolean" $ do
                 property $ \x -> maybeBoolToBool (Just x) == x
+    describe "toPair" $ do
+        context "when passed list has exactly 2 elements" $ do
+            it "returns Just tuple with this 2 elements" $ do
+                property $ \x1 x2 -> toPair ([x1, x2] :: [Int]) == Just (x1, x2)
+        context "when passed list has more or less than 2 elements" $ do
+            it "returns Nothing" $ do
+                property $ \l -> length (l :: [Int]) /= 2 ==> toPair l == Nothing
+    describe "toTrine" $ do
+        context "when passed list has exactly 3 elements" $ do
+            it "returns Just tuple with this 3 elements" $ do
+                property $ \x1 x2 x3 -> toTrine ([x1, x2, x3] :: [Int]) == Just (x1, x2, x3)
+        context "when passed list has more or less than 3 elements" $ do
+            it "returns Nothing" $ do
+                property $ \l -> length (l :: [Int]) /= 3 ==> toTrine l == Nothing
 
 main :: IO ()
 main = hspec spec
