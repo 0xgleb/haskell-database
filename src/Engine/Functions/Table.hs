@@ -19,8 +19,12 @@ import Data.List (elemIndex)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as BS
 import System.IO
-import System.IO.Error
 import Data.Binary
+
+import Common.Exception
+
+thisModule :: String
+thisModule = "Engine.Functions.Table"
 
 toPath :: DB -> TT.TableName -> FilePath
 toPath db = (("./.databases/" ++ db ++ "/") ++) . (++ ".table")
@@ -35,13 +39,13 @@ where_ :: ([(String, TT.AType)] -> TT.Row -> Bool) -> TT.Table -> TT.Table
 where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
 
 from :: DB -> [TT.TableName] -> IO TT.Table
-from db tables = catchIOError (fmap (TT.tableProduct . zipWith (,) tables) $ mapM (((decode :: BL.ByteString -> TT.Table) <$>) . BL.readFile . toPath db) tables)
-                              (\_ -> putStrLn ("An error occured while reading from the tables: " ++ (foldl ((++) . (++ " ")) "" tables) ++ "!") >> return (TT.Table [] []))
+from db tables = catch (fmap (TT.tableProduct . zipWith (,) tables) $ mapM (((decode :: BL.ByteString -> TT.Table) <$>) . BL.readFile . toPath db) tables)
+                       (\e -> exceptionHandler thisModule "from" e >> return (TT.Table [] []))
 
 tableTypes :: DB -> TT.TableName -> IO [(String, TT.AType)]
-tableTypes db table = (TT.types <$> from db [table]) `catchIOError` (\_ -> putStrLn ("An error occured while reading types of the table " ++ table ++ "!") >> return [])
+tableTypes db table = (TT.types <$> from db [table]) `catch` (\e -> exceptionHandler thisModule "tableTypes" e >> return [])
 
 to :: DB -> TT.TableName -> TT.Row -> IO Bool
-to db table newData = if filter (== TT.Invalid) (TT.unwrap newData) /= [] then return False
-                                                                          else catchIOError (BL.appendFile (toPath db table) (BL.concat $ map encode $ TT.unwrap newData)    >> return True) 
-                                                                                            (\_ -> putStrLn ("An error occured while writing to the table " ++ table ++ "!") >> return False)
+to db table newData = if filter (== TT.Invalid) (TT.unwrap newData) == [] 
+                         then (BL.appendFile (toPath db table) (BL.concat $ map encode $ TT.unwrap newData) >> return True) `catch` (\e -> exceptionHandler thisModule "to" e >> return False)
+                         else return False

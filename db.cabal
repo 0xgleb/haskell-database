@@ -19,6 +19,7 @@ library
                      , Server
                      , Common.Maybe
                      , Common.String
+                     , Common.Exception
                      , Console.App
                      , Console.DBConsole
                      , Console.StringParsing

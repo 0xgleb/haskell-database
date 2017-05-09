@@ -14,11 +14,14 @@ import Console.StringParsing
 
 import Control.Monad
 import System.IO
-import System.IO.Error
 import System.Directory
 
+import Common.Exception
+
+thisModule = "Console.DBConsole"
+
 getQuery :: DB -> [(String, String)] -> [TT.TableName] -> IO (Maybe TT.Table)
-getQuery db args targets = parseGetQuery args <$> from db targets
+getQuery db args targets = (parseGetQuery args <$> from db targets) `catch` (\e -> exceptionHandler thisModule "getQuery" e >> return Nothing)
 
 printMaybeTable :: Maybe TT.Table -> IO ()
 printMaybeTable (Just table) = print table
@@ -58,4 +61,4 @@ executeTableCommand db args = let next = workWithDB db in
                                                      Nothing       -> putStrLn "Invalid query!" >> next
 
 workWithDB :: DB -> IO ()
-workWithDB db = (putStr (db ++ " => ") >> hFlush stdout >> split ' ' <$> getLine >>= executeTableCommand db) `catchIOError` (\_ -> putStrLn "An error occured while doing something...")
+workWithDB db = (putStr (db ++ " => ") >> hFlush stdout >> split ' ' <$> getLine >>= executeTableCommand db) `catch` exceptionHandler thisModule "workWithDB"
