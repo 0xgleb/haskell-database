@@ -4,7 +4,10 @@ module Console.App
 
 import System.IO
 import System.Directory
+
 import Control.Conditional
+import Control.Monad.Trans
+import Control.Monad.Trans.Either
 import Common.Exception
 
 import Common.String
@@ -15,21 +18,22 @@ thisModule :: String
 thisModule = "Console.App"
 
 console :: IO ()
-console = (putStr "db -> " >> hFlush stdout >> split ' ' <$> getLine >>= executeDBCommand) `catch` (\e -> exceptionHandler thisModule "console" e >> console)
+console = printException $ ((lift $ putStr "db -> " >> hFlush stdout >> split ' ' <$> getLine) >>= executeDBCommand) `catchT` (left . exceptionHandler thisModule "console")
     where
+        liftedCli = lift console
         executeDBCommand args = case (length $ tail args) of
                                   0 -> case (head args) of
-                                         "ls"   -> ls >>= putStrLn . show >> console
-                                         "exit" -> putStrLn "Exiting..."
-                                         ""     -> console
-                                         _      -> putStrLn "Invalid command!" >> console
+                                         "ls"   -> lift (printEitherT ls) >> liftedCli
+                                         "exit" -> lift $ putStrLn "Exiting..."
+                                         ""     -> liftedCli
+                                         _      -> lift (putStrLn "Invalid command!") >> liftedCli
                                   1 -> do
                                       let target = head $ tail args
-                                      exist <- doesDirectoryExist $ toDBPath target
+                                      exist <- lift $ doesDirectoryExist $ toDBPath target
                                       case (head args) of
-                                        "create"  -> if exist then putStrLn "Database already exists!" >> console else create target >> console
-                                        "destroy" -> if exist then destroy target                      >> console else putStrLn "This database doesn't exist!" >> console
-                                        "ls"      -> if exist then listTables target >>= print         >> console else putStrLn "This database doesn't exist!" >> console
-                                        "use"     -> if exist then workWithDB target                   >> console else putStrLn "This database doesn't exist!" >> console
-                                        _         -> putStrLn "Invalid command!" >> console
-                                  _ -> putStrLn "Invalid command!"
+                                        "create"  -> if exist then lift (putStrLn "Database already exists!") >> liftedCli else lift (printEitherT $ create target)            >> liftedCli
+                                        "destroy" -> if exist then lift (printEitherT $ destroy target)       >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
+                                        "ls"      -> if exist then lift (printEitherT $ listTables target)    >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
+                                        "use"     -> if exist then lift (printException $ workWithDB target)  >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
+                                        _         -> lift (putStrLn "Invalid command!") >> liftedCli
+                                  _ -> lift (putStrLn "Invalid command!") >> liftedCli

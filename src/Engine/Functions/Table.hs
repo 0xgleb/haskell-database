@@ -1,5 +1,6 @@
 module Engine.Functions.Table
-( module TT
+( module Engine.Types.Table
+, module Engine.Types.DB
 , select
 , tableTypes
 , where_
@@ -9,10 +10,13 @@ module Engine.Functions.Table
 ) where
 
 import Engine.Types.DB
-import qualified Engine.Types.Table as TT
+import Engine.Types.Table
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Trans
+import Control.Monad.Trans.Either
+
 import Data.Maybe (maybeToList)
 import Data.List (elemIndex)
 
@@ -26,26 +30,24 @@ import Common.Exception
 thisModule :: String
 thisModule = "Engine.Functions.Table"
 
-toPath :: DB -> TT.TableName -> FilePath
+toPath :: DB -> TableName -> FilePath
 toPath db = (("./.databases/" ++ db ++ "/") ++) . (++ ".table")
 
-select :: [String] -> TT.Table -> Maybe TT.Table
-select names (TT.Table fields values) = if length functionsList == length names then Just $ TT.Table (getElems fields) (map (TT.Row . getElems . TT.unwrap) values) else Nothing
-    where 
-        functionsList = join $ map (maybeToList . flip elemIndex (map fst fields)) names
-        getElems list = foldl (\p f -> p ++ [f list]) [] $ map (flip (!!)) functionsList
+select :: [String] -> Table -> Maybe Table
+select names (Table fields values) = if length functionsList == length names then Just $ Table (getElems fields) (map (Row . getElems . unwrap) values) else Nothing
+    where functionsList = join $ map (maybeToList . flip elemIndex (map fst fields)) names
+          getElems list = foldl (\p f -> p ++ [f list]) [] $ map (flip (!!)) functionsList
 
-where_ :: ([(String, TT.AType)] -> TT.Row -> Bool) -> TT.Table -> TT.Table
-where_ f (TT.Table fields values) = TT.Table fields $ filter (f fields) values
+where_ :: ([(String, AType)] -> Row -> Bool) -> Table -> Table
+where_ f (Table fields values) = Table fields $ filter (f fields) values
 
-from :: DB -> [TT.TableName] -> IO TT.Table
-from db tables = catch (fmap (TT.tableProduct . zipWith (,) tables) $ mapM (((decode :: BL.ByteString -> TT.Table) <$>) . BL.readFile . toPath db) tables)
-                       (\e -> exceptionHandler thisModule "from" e >> return (TT.Table [] []))
+from :: DB -> [TableName] -> EitherT Message IO Table
+from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM ((decodeTable <$>) . BL.readFile . toPath db) tables) `catchT` (left . exceptionHandler thisModule "from")
 
-tableTypes :: DB -> TT.TableName -> IO [(String, TT.AType)]
-tableTypes db table = (TT.types <$> from db [table]) `catch` (\e -> exceptionHandler thisModule "tableTypes" e >> return [])
+tableTypes :: DB -> TableName -> EitherT Message IO [(String, AType)]
+tableTypes db table = (fmap types $ from db [table]) `catchT` (left . exceptionHandler thisModule "tableTypes")
 
-to :: DB -> TT.TableName -> TT.Row -> IO Bool
-to db table newData = if filter (== TT.Invalid) (TT.unwrap newData) == [] 
-                         then (BL.appendFile (toPath db table) (BL.concat $ map encode $ TT.unwrap newData) >> return True) `catch` (\e -> exceptionHandler thisModule "to" e >> return False)
-                         else return False
+to :: DB -> TableName -> Row -> EitherT Message IO ()
+to db table newData = if filter (== Invalid) (unwrap newData) == []
+                         then (lift $ BL.appendFile (toPath db table) (BL.concat $ map encode $ unwrap newData)) `catchT` (left . exceptionHandler thisModule "to")
+                         else left "Engine.Functions.Table.to: Cannot add invalid data!"

@@ -57,9 +57,8 @@ toBinOp _    = Nothing
 
 eval :: [(String, AType)] -> String -> Row -> PolyType
 eval types str = (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unwrap . values <$>) . select [str] . Table types . return
-                 where
-                     maybePolyToPoly (Just x) = x
-                     maybePolyToPoly _        = Invalid
+                 where maybePolyToPoly (Just x) = x
+                       maybePolyToPoly _        = Invalid
 
 parseGetQuery :: [(String, String)] -> Table -> Maybe Table
 parseGetQuery []                        = return

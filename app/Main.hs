@@ -1,18 +1,10 @@
 import System.IO
 import System.Directory
 import System.Environment (getArgs)
+import Control.Conditional (ifM)
 
 import Server
 import Console
 
 main :: IO ()
-main = do 
-    hSetBuffering stdin (BlockBuffering Nothing) 
-    let databasesPath = ".databases"
-    args <- getArgs
-    e <- doesDirectoryExist databasesPath
-    if e then return ()
-         else createDirectory databasesPath
-    if args == ["server"]
-       then server
-       else console
+main = hSetBuffering stdin (BlockBuffering Nothing) >> ifM (doesDirectoryExist ".databases") (return ()) (createDirectory ".databases") >> ifM ((== ["server"]) <$> getArgs) server console

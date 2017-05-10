@@ -6,10 +6,12 @@ module Engine.Types.Table.Table
 , types
 , values
 , tableProduct
+, decodeTable
 ) where
 
 import Data.Binary
 import Data.Binary.Get (isEmpty)
+import qualified Data.ByteString.Lazy as BL
 import Data.List (foldl')
 
 import Engine.Types.Table.PolyType
@@ -37,7 +39,11 @@ values :: Table -> [Row]
 values (Table _ tableValues) = tableValues
 
 tableProduct :: [(String, Table)] -> Table
-tableProduct tables = Table (join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ types table) (map snd $ types table)) tables) (map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unwrap . values . snd) tables)
+tableProduct tables = Table (join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ types table) (map snd $ types table)) tables) 
+                            (map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unwrap . values . snd) tables)
+
+decodeTable :: BL.ByteString -> Table
+decodeTable = decode
 
 instance Show Table where
     show (Table tableTypes tableValues) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))

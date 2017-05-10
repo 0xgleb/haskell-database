@@ -18,6 +18,8 @@ import System.IO
 import System.Directory
 import Control.Monad
 import Control.Monad.Extra
+import Control.Monad.Trans
+import Control.Monad.Trans.Either
 import Common.Exception
 
 import qualified Data.ByteString.Lazy as BL
@@ -29,23 +31,24 @@ thisModule = "Engine.Functions.DB"
 toDBPath :: String -> FilePath
 toDBPath = (++) "./.databases/"
 
-create :: String -> IO DB
-create name = (createDirectoryIfMissing False (toDBPath name) >> return name) `catch` (\e -> exceptionHandler thisModule "create" e >> return "")
+create :: String -> EitherT Message IO DB
+create name = (lift (createDirectoryIfMissing False (toDBPath name)) >> right name) `catchT` (left . exceptionHandler thisModule "create")
 
-destroy :: DB -> IO Bool
-destroy db = (ifM (doesDirectoryExist dbPath) (removeDirectoryRecursive dbPath >> return True) (return False)) `catch` (\e -> exceptionHandler thisModule "destroy" e >> return False)
-    where dbPath = toDBPath db
+destroy :: DB -> EitherT Message IO ()
+destroy db = (ifM (lift $ doesDirectoryExist path) (lift $ removeDirectoryRecursive path) (left $ "DB " ++ db ++ " doesn't exists!")) `catchT` (left . exceptionHandler thisModule "destroy")
+    where path = toDBPath db
 
-ls :: IO [FilePath]
-ls = listDirectory (toDBPath "") `catch` (\e -> exceptionHandler thisModule "ls" e >> return [])
+ls :: EitherT Message IO [FilePath]
+ls = (lift $ listDirectory (toDBPath "")) `catchT` (left . exceptionHandler thisModule "ls")
 
-createTable :: DB -> TableName -> [(String, AType)] -> IO Bool
-createTable db table types = let tablePath = toPath db table in catch (ifM (doesFileExist tablePath) (return False) (BL.writeFile tablePath (encode $ Table types []) >> return True))
-                                                                      (\e -> exceptionHandler thisModule "createTable" e >> return False)
+createTable :: DB -> TableName -> [(String, AType)] -> EitherT Message IO ()
+createTable db table types = catchT (ifM (lift $ doesFileExist tablePath) (left $ "DB " ++ db ++ " already exists!") (lift $ BL.writeFile tablePath $ encode $ Table types []))
+                                    (left . exceptionHandler thisModule "createTable")
+                                       where tablePath = toPath db table
 
-dropTable :: DB -> TableName -> IO Bool
-dropTable db table = (ifM (doesFileExist path) (removeFile path >> return True) (return False)) `catch` (\e -> exceptionHandler thisModule "dropTable" e >> return False)
+dropTable :: DB -> TableName -> EitherT Message IO ()
+dropTable db table = (ifM (lift $ doesFileExist path) (lift $ removeFile path) (left $ "DB " ++ db ++ "doesn't exist!")) `catchT` (left . exceptionHandler thisModule "dropTable")
     where path = toPath db table
 
-listTables :: DB -> IO [String]
-listTables db = (map (join . init . split '.') <$> listDirectory (toDBPath db)) `catch` (\e -> exceptionHandler thisModule "listTables" e >> return [])
+listTables :: DB -> EitherT Message IO [String]
+listTables db = (lift $ map (join . init . split '.') <$> listDirectory (toDBPath db)) `catchT` (left . exceptionHandler thisModule "listTables")
