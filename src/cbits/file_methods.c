@@ -1,6 +1,7 @@
 #include <stdio.h>
+#include <stdint.h>
 
-int update(char *file_name, int byte, int len, uint8 *data) {
+int update(char *file_name, int byte, int len, uint8_t *data) {
     FILE *file_ptr;
 
     file_ptr = fopen(file_name, "wr");
