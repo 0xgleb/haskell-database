@@ -1,6 +1,5 @@
 module Engine.Types.Table.Table
 ( Row(..)
-, unwrap
 , Table(..)
 , TableName
 , types
@@ -19,11 +18,7 @@ import Engine.Types.Table.PolyType
 import Control.Monad (join)
 import Control.Monad.Extra (ifM)
 
-newtype Row = Row [PolyType]
-    deriving (Eq, Ord)
-
-unwrap :: Row -> [PolyType]
-unwrap (Row l) = l
+newtype Row = Row { unRow :: [PolyType] } deriving (Eq, Ord)
 
 instance Show Row where
     show (Row values) = show values
@@ -40,7 +35,7 @@ values (Table _ tableValues) = tableValues
 
 tableProduct :: [(String, Table)] -> Table
 tableProduct tables = Table (join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ types table) (map snd $ types table)) tables) 
-                            (map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unwrap . values . snd) tables)
+                            (map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unRow . values . snd) tables)
 
 decodeTable :: BL.ByteString -> Table
 decodeTable = decode
@@ -49,7 +44,7 @@ instance Show Table where
     show (Table tableTypes tableValues) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))
 
 instance Binary Table where
-    put (Table tableTypes tableValues) = put tableTypes >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unwrap) tableValues)
+    put (Table tableTypes tableValues) = put tableTypes >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unRow) tableValues)
 
     get = do tableTypes <- get :: Get [(String, AType)]
              tableValues <- getPolyTypes $ map snd tableTypes

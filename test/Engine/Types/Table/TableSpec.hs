@@ -17,10 +17,10 @@ instance Arbitrary Table where
             where
                 getRow :: [AType] -> Gen Row
                 getRow [] = return $ Row []
-                getRow (BoolType:xs)   = Row <$> (((:) <$> (PolyBool   <$> arbitrary :: Gen PolyType)) <*> (unwrap <$> getRow xs))
-                getRow (IntType:xs)    = Row <$> (((:) <$> (PolyInt    <$> arbitrary :: Gen PolyType)) <*> (unwrap <$> getRow xs))
-                getRow (FloatType:xs)  = Row <$> (((:) <$> (PolyFloat  <$> arbitrary :: Gen PolyType)) <*> (unwrap <$> getRow xs))
-                getRow (StringType:xs) = Row <$> (((:) <$> (PolyString <$> arbitrary :: Gen PolyType)) <*> (unwrap <$> getRow xs))
+                getRow (BoolType:xs)   = Row <$> (((:) <$> (PolyBool   <$> arbitrary :: Gen PolyType)) <*> (unRow <$> getRow xs))
+                getRow (IntType:xs)    = Row <$> (((:) <$> (PolyInt    <$> arbitrary :: Gen PolyType)) <*> (unRow <$> getRow xs))
+                getRow (FloatType:xs)  = Row <$> (((:) <$> (PolyFloat  <$> arbitrary :: Gen PolyType)) <*> (unRow <$> getRow xs))
+                getRow (StringType:xs) = Row <$> (((:) <$> (PolyString <$> arbitrary :: Gen PolyType)) <*> (unRow <$> getRow xs))
                 getValues fields = do
                     continue <- arbitrary :: Gen Bool
                     if continue then ((:) <$> getRow fields) <*> getValues fields
@@ -28,9 +28,6 @@ instance Arbitrary Table where
 
 spec :: Spec
 spec = do
-    describe "unwrap" $ do
-        it "takes Row and returns list that is wrapped in it" $ do
-            property $ \l -> unwrap (Row l) == l
     describe "types" $ do
         it "takes Table and returns list of pairs (name, type)" $ do
             property $ \(Table tableTypes tableValues) -> types (Table tableTypes tableValues) == tableTypes
