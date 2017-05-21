@@ -30,7 +30,7 @@ import Common.Exception
 thisModule :: String
 thisModule = "Engine.Functions.Table"
 
-toPath :: DB -> TableName -> FilePath
+toPath :: DBName -> TableName -> FilePath
 toPath db = (("./.databases/" ++ db ++ "/") ++) . (++ ".table")
 
 select :: [String] -> Table -> Maybe Table
@@ -41,13 +41,13 @@ select names (Table fields values) = if length functionsList == length names the
 where_ :: ([(String, AType)] -> Row -> Bool) -> Table -> Table
 where_ f (Table fields values) = Table fields $ filter (f fields) values
 
-from :: DB -> [TableName] -> EitherT Message IO Table
+from :: DBName -> [TableName] -> EitherT Message IO Table
 from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM ((decodeTable <$>) . BL.readFile . toPath db) tables) `catchT` (left . exceptionHandler thisModule "from")
 
-tableTypes :: DB -> TableName -> EitherT Message IO [(String, AType)]
+tableTypes :: DBName -> TableName -> EitherT Message IO [(String, AType)]
 tableTypes db table = (fmap types $ from db [table]) `catchT` (left . exceptionHandler thisModule "tableTypes")
 
-to :: DB -> TableName -> Row -> EitherT Message IO ()
+to :: DBName -> TableName -> Row -> EitherT Message IO ()
 to db table newData = if filter (== Invalid) (unRow newData) == []
                          then (lift $ BL.appendFile (toPath db table) (BL.concat $ map encode $ unRow newData)) `catchT` (left . exceptionHandler thisModule "to")
                          else left "Engine.Functions.Table.to: Cannot add invalid data!"

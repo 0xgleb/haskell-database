@@ -16,22 +16,23 @@ library
   ghc-options:         -O2
   c-sources:           src/cbits/file_methods.c
   exposed-modules:     Common
-                     , Engine
-                     , Console
-                     , Server
+                     , Common.File
                      , Common.Maybe
                      , Common.String
                      , Common.Exception
-                     , Console.App
-                     , Console.DBConsole
+                     , Console
                      , Console.StringParsing
-                     , Engine.Functions.DB
-                     , Engine.Functions.Table
+                     , Console.DBConsole
+                     , Console.App
+                     , Engine
                      , Engine.Types.DB
                      , Engine.Types.Table
                      , Engine.Types.Table.AType
                      , Engine.Types.Table.PolyType
                      , Engine.Types.Table.Table
+                     , Engine.Functions.DB
+                     , Engine.Functions.Table
+                     , Server
                      , Server.Main
   build-depends:       base >= 4.7 && < 5
                      , text 

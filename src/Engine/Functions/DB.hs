@@ -1,9 +1,9 @@
 module Engine.Functions.DB
 ( module Engine.Types.DB
-, create
-, destroy
+, createDB
+, destroyDB
 , toDBPath
-, ls
+, listDBs
 , createTable
 , dropTable
 , listTables
@@ -31,24 +31,24 @@ thisModule = "Engine.Functions.DB"
 toDBPath :: String -> FilePath
 toDBPath = (++) "./.databases/"
 
-create :: String -> EitherT Message IO DB
-create name = (lift (createDirectoryIfMissing False (toDBPath name)) >> right name) `catchT` (left . exceptionHandler thisModule "create")
+createDB :: DBName -> EitherT Message IO DBName
+createDB name = (lift (createDirectoryIfMissing False (toDBPath name)) >> right name) `catchT` (left . exceptionHandler thisModule "create")
 
-destroy :: DB -> EitherT Message IO ()
-destroy db = (ifM (lift $ doesDirectoryExist path) (lift $ removeDirectoryRecursive path) (left $ "DB " ++ db ++ " doesn't exists!")) `catchT` (left . exceptionHandler thisModule "destroy")
+destroyDB :: DBName -> EitherT Message IO ()
+destroyDB db = (ifM (lift $ doesDirectoryExist path) (lift $ removeDirectoryRecursive path) (left $ "DB " ++ db ++ " doesn't exists!")) `catchT` (left . exceptionHandler thisModule "destroy")
     where path = toDBPath db
 
-ls :: EitherT Message IO [FilePath]
-ls = (lift $ listDirectory (toDBPath "")) `catchT` (left . exceptionHandler thisModule "ls")
+listDBs :: EitherT Message IO [DBName]
+listDBs = (lift $ listDirectory (toDBPath "")) `catchT` (left . exceptionHandler thisModule "ls")
 
-createTable :: DB -> TableName -> [(String, AType)] -> EitherT Message IO ()
+createTable :: DBName -> TableName -> [(String, AType)] -> EitherT Message IO ()
 createTable db table types = catchT (ifM (lift $ doesFileExist tablePath) (left $ "DB " ++ db ++ " already exists!") (lift $ BL.writeFile tablePath $ encode $ Table types []))
                                     (left . exceptionHandler thisModule "createTable")
                                        where tablePath = toPath db table
 
-dropTable :: DB -> TableName -> EitherT Message IO ()
+dropTable :: DBName -> TableName -> EitherT Message IO ()
 dropTable db table = (ifM (lift $ doesFileExist path) (lift $ removeFile path) (left $ "DB " ++ db ++ "doesn't exist!")) `catchT` (left . exceptionHandler thisModule "dropTable")
     where path = toPath db table
 
-listTables :: DB -> EitherT Message IO [String]
+listTables :: DBName -> EitherT Message IO [String]
 listTables db = (lift $ map (join . init . split '.') <$> listDirectory (toDBPath db)) `catchT` (left . exceptionHandler thisModule "listTables")

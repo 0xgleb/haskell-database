@@ -23,7 +23,7 @@ console = printException $ ((lift $ putStr "db -> " >> hFlush stdout >> split ' 
         liftedCli = lift console
         executeDBCommand args = case (length $ tail args) of
                                   0 -> case (head args) of
-                                         "ls"   -> lift (printEitherT ls) >> liftedCli
+                                         "ls"   -> lift (printEitherT listDBs) >> liftedCli
                                          "exit" -> lift $ putStrLn "Exiting..."
                                          ""     -> liftedCli
                                          _      -> lift (putStrLn "Invalid command!") >> liftedCli
@@ -31,8 +31,8 @@ console = printException $ ((lift $ putStr "db -> " >> hFlush stdout >> split ' 
                                       let target = head $ tail args
                                       exist <- lift $ doesDirectoryExist $ toDBPath target
                                       case (head args) of
-                                        "create"  -> if exist then lift (putStrLn "Database already exists!") >> liftedCli else lift (printEitherT $ create target)            >> liftedCli
-                                        "destroy" -> if exist then lift (printEitherT $ destroy target)       >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
+                                        "create"  -> if exist then lift (putStrLn "Database already exists!") >> liftedCli else lift (printEitherT $ createDB target)            >> liftedCli
+                                        "destroy" -> if exist then lift (printEitherT $ destroyDB target)       >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
                                         "ls"      -> if exist then lift (printEitherT $ listTables target)    >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
                                         "use"     -> if exist then lift (printException $ workWithDB target)  >> liftedCli else lift (putStrLn "This database doesn't exist!") >> liftedCli
                                         _         -> lift (putStrLn "Invalid command!") >> liftedCli

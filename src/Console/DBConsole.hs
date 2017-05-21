@@ -21,7 +21,7 @@ import Common.Exception
 thisModule :: String
 thisModule = "Console.DBConsole"
 
-getQuery :: DB -> [(String, String)] -> [TableName] -> EitherT Message IO Table
+getQuery :: DBName -> [(String, String)] -> [TableName] -> EitherT Message IO Table
 getQuery db args targets = ((hoistEither . maybeToEither . parseGetQuery args) =<< from db targets) `catchT` (left . exceptionHandler thisModule "getQuery")
     where maybeToEither Nothing  = Left "Invalid query!"
           maybeToEither (Just x) = Right x
@@ -34,7 +34,7 @@ rmDuplicates :: Eq a => [a] -> [a]
 rmDuplicates []     = []
 rmDuplicates (x:xs) = x : rmDuplicates (filter (/= x) xs)
 
-executeTableCommand :: DB -> [String] -> IO ()
+executeTableCommand :: DBName -> [String] -> IO ()
 executeTableCommand db args = let next = runEitherT (workWithDB db) >> return () in 
                                   case (length $ tail args) of
                                     0 -> case (head args) of
@@ -63,5 +63,5 @@ executeTableCommand db args = let next = runEitherT (workWithDB db) >> return ()
                                                                         _      -> putStrLn "Invalid query!" >> next
                                                      Nothing       -> putStrLn "Invalid query!" >> next
 
-workWithDB :: DB -> EitherT Message IO ()
+workWithDB :: DBName -> EitherT Message IO ()
 workWithDB db = (lift (putStr (db ++ " => ") >> hFlush stdout >> split ' ' <$> getLine >>= executeTableCommand db)) `catchT` (left . exceptionHandler thisModule "workWithDB")

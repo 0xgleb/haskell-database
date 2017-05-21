@@ -1,5 +1,6 @@
 module Common.Exception 
 ( module Control.Exception
+, module Control.Monad.Trans.Either
 , Message
 , catchT
 , exceptionHandler

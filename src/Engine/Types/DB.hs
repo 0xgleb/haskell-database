@@ -1,5 +1,5 @@
 module Engine.Types.DB
-( DB
+( DBName
 ) where
 
-type DB = String
+type DBName = String
