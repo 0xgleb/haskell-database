@@ -1,31 +1,31 @@
 module Common.Exception 
 ( module Control.Exception
-, module Control.Monad.Trans.Either
+, module Control.Monad.Trans.Except
 , Message
 , catchT
 , exceptionHandler
-, printEitherT
+, printExceptT
 , printException
 ) where
 
 import Control.Monad.Trans
-import Control.Monad.Trans.Either
+import Control.Monad.Trans.Except
 import Control.Exception
 
 type Message = String
 
-printEitherT :: Show a => EitherT Message IO a -> IO ()
-printEitherT x = (showEither <$> runEitherT x) >>= putStrLn
+printExceptT :: Show a => ExceptT Message IO a -> IO ()
+printExceptT x = (showEither <$> runExceptT x) >>= putStrLn
     where showEither (Left message) = message
           showEither (Right result) = show result
 
-printException :: EitherT Message IO a -> IO ()
-printException x = (showEither <$> runEitherT x) >>= putStr
+printException :: ExceptT Message IO a -> IO ()
+printException x = (showEither <$> runExceptT x) >>= putStr
     where showEither (Left message) = message ++ "\n"
           showEither (Right result) = ""
 
-catchT :: EitherT a IO b -> (SomeException -> EitherT a IO b) -> EitherT a IO b
-catchT s handle = EitherT $ (runEitherT s) `catch` (runEitherT . handle)
+catchT :: ExceptT a IO b -> (SomeException -> ExceptT a IO b) -> ExceptT a IO b
+catchT s handle = ExceptT $ (runExceptT s) `catch` (runExceptT . handle)
 
 exceptionHandler :: String -> String -> SomeException -> Message
 exceptionHandler excp_module function = (++) ("An error occured in module " ++ excp_module ++ " in function " ++ function ++ ": ") . show

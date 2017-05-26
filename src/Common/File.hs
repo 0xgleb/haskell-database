@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+
 module Common.File 
 ( update
 , delete
@@ -14,11 +15,11 @@ import Foreign.C.String
 foreign import ccall safe "file_methods.c"
     c_update :: CString -> CInt -> IO ()
 
-update :: DBName -> TableName -> Int -> Row -> EitherT Message IO ()
+update :: DBName -> TableName -> Int -> Row -> ExceptT Message IO ()
 update = undefined
 
 foreign import ccall safe "file_methods.c"
     c_delete :: CString -> CInt -> CInt -> IO ()
 
-delete :: DBName -> TableName -> Int -> EitherT Message IO ()
+delete :: DBName -> TableName -> Int -> ExceptT Message IO ()
 delete = undefined

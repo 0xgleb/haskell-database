@@ -12,7 +12,6 @@ import Console.StringParsing
 
 import Control.Monad
 import Control.Monad.Trans
-import Control.Monad.Trans.Either
 
 import System.IO
 import System.Directory
@@ -21,10 +20,10 @@ import Common.Exception
 thisModule :: String
 thisModule = "Console.DBConsole"
 
-getQuery :: DBName -> [(String, String)] -> [TableName] -> EitherT Message IO Table
-getQuery db args targets = ((hoistEither . maybeToEither . parseGetQuery args) =<< from db targets) `catchT` (left . exceptionHandler thisModule "getQuery")
-    where maybeToEither Nothing  = Left "Invalid query!"
-          maybeToEither (Just x) = Right x
+getQuery :: DBName -> [(String, String)] -> [TableName] -> ExceptT Message IO Table
+getQuery db args targets = ((maybeToExceptT . parseGetQuery args) =<< from db targets) `catchT` (throwE . exceptionHandler thisModule "getQuery")
+    where maybeToExceptT Nothing  = throwE "Invalid query!"
+          maybeToExceptT (Just x) = return x
 
 printMaybeTable :: Maybe Table -> IO ()
 printMaybeTable (Just table) = print table
@@ -35,10 +34,10 @@ rmDuplicates []     = []
 rmDuplicates (x:xs) = x : rmDuplicates (filter (/= x) xs)
 
 executeTableCommand :: DBName -> [String] -> IO ()
-executeTableCommand db args = let next = runEitherT (workWithDB db) >> return () in 
+executeTableCommand db args = let next = runExceptT (workWithDB db) >> return () in 
                                   case (length $ tail args) of
                                     0 -> case (head args) of
-                                           "ls"   -> printEitherT (listTables db) >> next
+                                           "ls"   -> printExceptT (listTables db) >> next
                                            "exit" -> putStrLn "Exiting..."
                                            ""     -> next
                                            _      -> putStrLn "Invalid command!" >> next
@@ -46,22 +45,22 @@ executeTableCommand db args = let next = runEitherT (workWithDB db) >> return ()
                                         let target = head $ tail args
                                         exist <- doesFileExist $ toPath db target
                                         case (head args) of
-                                          "types"  -> if exist then printEitherT (tableTypes db target) >> next else putStrLn "This table doesn't exist!" >> next
-                                          "read"   -> if exist then printEitherT (from db [target])     >> next else putStrLn "This table doesn't exist!" >> next
-                                          "drop"   -> if exist then printEitherT (dropTable db target)  >> next else putStrLn "This table doesn't exist!" >> next
+                                          "types"  -> if exist then printExceptT (tableTypes db target) >> next else putStrLn "This table doesn't exist!" >> next
+                                          "read"   -> if exist then printExceptT (from db [target])     >> next else putStrLn "This table doesn't exist!" >> next
+                                          "drop"   -> if exist then printExceptT (dropTable db target)  >> next else putStrLn "This table doesn't exist!" >> next
                                           "create" -> let safeTypes = map toType <$> (sequence $ map (toPair . split ':') $ split ',' $ join $ tail $ tail args) in
                                                           if exist 
                                                              then putStrLn "This table already exists!"
                                                              else case safeTypes of
-                                                                    (Just types) -> if filter ((== InvalidType) . snd) types == [] then printEitherT (createTable db target types) >> next
+                                                                    (Just types) -> if filter ((== InvalidType) . snd) types == [] then printExceptT (createTable db target types) >> next
                                                                                                                                    else putStrLn "Invalid types!" >> next
                                                                     _            -> putStrLn "Invalid types declaration!" >> next
                                           _ -> let safeArgs = sequence $ map (toPair . split '#') args in
                                                    case safeArgs of
                                                      (Just tuples) -> case (fst $ last tuples) of
-                                                                        "from" -> printEitherT (getQuery db (init tuples) $ rmDuplicates $ split ',' $ snd $ last tuples) >> next
+                                                                        "from" -> printExceptT (getQuery db (init tuples) $ rmDuplicates $ split ',' $ snd $ last tuples) >> next
                                                                         _      -> putStrLn "Invalid query!" >> next
                                                      Nothing       -> putStrLn "Invalid query!" >> next
 
-workWithDB :: DBName -> EitherT Message IO ()
-workWithDB db = (lift (putStr (db ++ " => ") >> hFlush stdout >> split ' ' <$> getLine >>= executeTableCommand db)) `catchT` (left . exceptionHandler thisModule "workWithDB")
+workWithDB :: DBName -> ExceptT Message IO ()
+workWithDB db = (lift (putStr (db ++ " => ") >> hFlush stdout >> split ' ' <$> getLine >>= executeTableCommand db)) `catchT` (throwE . exceptionHandler thisModule "workWithDB")

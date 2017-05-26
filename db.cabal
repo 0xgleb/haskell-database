@@ -39,7 +39,7 @@ library
                      , extra
                      , cond
                      , mtl
-                     , either
+                     , transformers
                      , safe
                      , directory
                      , bytestring

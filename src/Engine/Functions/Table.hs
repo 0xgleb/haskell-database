@@ -15,7 +15,7 @@ import Engine.Types.Table
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
-import Control.Monad.Trans.Either
+import Control.Monad.Trans.Except
 
 import Data.Maybe (maybeToList)
 import Data.List (elemIndex)
@@ -41,13 +41,13 @@ select names (Table fields values) = if length functionsList == length names the
 where_ :: ([(String, AType)] -> Row -> Bool) -> Table -> Table
 where_ f (Table fields values) = Table fields $ filter (f fields) values
 
-from :: DBName -> [TableName] -> EitherT Message IO Table
-from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM ((decodeTable <$>) . BL.readFile . toPath db) tables) `catchT` (left . exceptionHandler thisModule "from")
+from :: DBName -> [TableName] -> ExceptT Message IO Table
+from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM ((decodeTable <$>) . BL.readFile . toPath db) tables) `catchT` (throwE . exceptionHandler thisModule "from")
 
-tableTypes :: DBName -> TableName -> EitherT Message IO [(String, AType)]
-tableTypes db table = (fmap types $ from db [table]) `catchT` (left . exceptionHandler thisModule "tableTypes")
+tableTypes :: DBName -> TableName -> ExceptT Message IO [(String, AType)]
+tableTypes db table = (fmap types $ from db [table]) `catchT` (throwE . exceptionHandler thisModule "tableTypes")
 
-to :: DBName -> TableName -> Row -> EitherT Message IO ()
+to :: DBName -> TableName -> Row -> ExceptT Message IO ()
 to db table newData = if filter (== Invalid) (unRow newData) == []
-                         then (lift $ BL.appendFile (toPath db table) (BL.concat $ map encode $ unRow newData)) `catchT` (left . exceptionHandler thisModule "to")
-                         else left "Engine.Functions.Table.to: Cannot add invalid data!"
+                         then (lift $ BL.appendFile (toPath db table) (BL.concat $ map encode $ unRow newData)) `catchT` (throwE . exceptionHandler thisModule "to")
+                         else throwE "Engine.Functions.Table.to: Cannot add invalid data!"
