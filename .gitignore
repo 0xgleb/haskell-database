@@ -5,3 +5,5 @@ tags
 client/elm-stuff
 **.html
 .stack-work
+a.out
+check.c

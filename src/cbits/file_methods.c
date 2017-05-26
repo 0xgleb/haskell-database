@@ -9,13 +9,16 @@
 
 int update(char *file_name, long byte, size_t len, uint8_t *data) {
     FILE *file_ptr;
+		uint8_t *backup;
 
-    file_ptr = fopen(file_name, "wrb");
+    file_ptr = fopen(file_name, "r+b");
 
     if(file_ptr) {
 			fseek(file_ptr, byte, SEEK_SET);
-			uint8_t *backup = (uint8_t*) malloc(len);
+			backup = (uint8_t*) malloc(len);
+
 			fread(backup, 1, len, file_ptr);
+			fseek(file_ptr, byte, SEEK_SET);
 
 			size_t bytes_written = fwrite(data, 1, len, file_ptr);
 
