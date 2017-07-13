@@ -42,9 +42,8 @@ toType (name, _)        = (name, InvalidType)
 
 readSomething :: String -> PolyType
 readSomething str = tmpReadSomething str possibleTypes
-                    where 
-                        tmpReadSomething str (x:xs) = polyRead x str <|> tmpReadSomething str xs
-                        tmpReadSomething _ [] = Invalid
+    where tmpReadSomething str (x:xs) = polyRead x str <|> tmpReadSomething str xs
+          tmpReadSomething _   []     = Invalid
 
 toBinOp :: Ord a => String -> Maybe (a -> a -> Bool)
 toBinOp "==" = Just (==)
@@ -56,20 +55,20 @@ toBinOp "/=" = Just (/=)
 toBinOp _    = Nothing
 
 eval :: [(String, AType)] -> String -> Row -> PolyType
-eval types str = (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unRow . values <$>) . select [str] . Table types . return
-                 where maybePolyToPoly (Just x) = x
-                       maybePolyToPoly _        = Invalid
+eval types str = (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unRow . tableValues <$>) . select [str] . Table types [] . return
+    where maybePolyToPoly (Just x) = x
+          maybePolyToPoly _        = Invalid
 
 parseGetQuery :: [(String, String)] -> Table -> Maybe Table
 parseGetQuery []                        = return
-parseGetQuery (("select", '(':rest):xs) = parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest)
+parseGetQuery (("select", '(':rest):xs) = if last rest == ')' then parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest) else \_ -> Nothing
 parseGetQuery (("select", arg):xs)      = parseGetQuery xs >=> select [arg]
 parseGetQuery (("where", params):xs)    = case toTrine $ split ' ' $ init $ tail params of
                                             Nothing        -> \_ -> Nothing
                                             Just (x, o, y) -> case (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o of
                                                                 Nothing -> \_ -> Nothing 
-                                                                Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (types table)) 
-                                                                                     && (readSomething y /= Invalid || y `elem` map fst (types table))
+                                                                Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (tableTypes table)) 
+                                                                                     && (readSomething y /= Invalid || y `elem` map fst (tableTypes table))
                                                                                               then (parseGetQuery xs >=> return . where_ f) table
                                                                                               else Nothing
 parseGetQuery _ = \_ -> Nothing

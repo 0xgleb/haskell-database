@@ -2,7 +2,7 @@ module Engine.Functions.Table
 ( module Engine.Types.Table
 , module Engine.Types.DB
 , select
-, tableTypes
+, getTableTypes
 , where_
 , toPath
 , from
@@ -25,6 +25,7 @@ import qualified Data.ByteString as BS
 import System.IO
 import Data.Binary
 
+import Common.Maybe
 import Common.Exception
 
 thisModule :: String
@@ -34,18 +35,18 @@ toPath :: DBName -> TableName -> FilePath
 toPath db = (("./.databases/" ++ db ++ "/") ++) . (++ ".table")
 
 select :: [String] -> Table -> Maybe Table
-select names (Table fields values) = if length functionsList == length names then Just $ Table (getElems fields) (map (Row . getElems . unRow) values) else Nothing
-    where functionsList = join $ map (maybeToList . flip elemIndex (map fst fields)) names
+select names (Table types pKeys values) = toMaybe (length functionsList == length names) $ Table (getElems types) (filter (flip elem names) pKeys) (map (Row . getElems . unRow) values)
+    where functionsList = join $ map (maybeToList . flip elemIndex (map fst types)) names
           getElems list = foldl (\p f -> p ++ [f list]) [] $ map (flip (!!)) functionsList
 
 where_ :: ([(String, AType)] -> Row -> Bool) -> Table -> Table
-where_ f (Table fields values) = Table fields $ filter (f fields) values
+where_ f (Table types pKeys values) = Table types pKeys $ filter (f types) values
 
 from :: DBName -> [TableName] -> ExceptT Message IO Table
 from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM ((decodeTable <$>) . BL.readFile . toPath db) tables) `catchT` (throwE . exceptionHandler thisModule "from")
 
-tableTypes :: DBName -> TableName -> ExceptT Message IO [(String, AType)]
-tableTypes db table = (fmap types $ from db [table]) `catchT` (throwE . exceptionHandler thisModule "tableTypes")
+getTableTypes :: DBName -> TableName -> ExceptT Message IO [(String, AType)]
+getTableTypes db table = (fmap tableTypes $ from db [table]) `catchT` (throwE . exceptionHandler thisModule "tableTypes")
 
 to :: DBName -> TableName -> Row -> ExceptT Message IO ()
 to db table newData = if filter (== Invalid) (unRow newData) == []

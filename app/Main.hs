@@ -1,7 +1,7 @@
 import System.IO
 import System.Directory
 import System.Environment (getArgs)
-import Control.Conditional (ifM)
+import Control.Monad.Extra (ifM)
 
 import Server
 import Console

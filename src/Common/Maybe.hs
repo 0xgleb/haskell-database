@@ -1,6 +1,7 @@
 module Common.Maybe
 ( safeHead
 , maybeBoolToBool
+, toMaybe
 , toPair
 , toTrine
 ) where
@@ -12,6 +13,10 @@ safeHead _      = Nothing
 maybeBoolToBool :: Maybe Bool -> Bool
 maybeBoolToBool Nothing  = False
 maybeBoolToBool (Just b) = b
+
+toMaybe :: Bool -> a -> Maybe a
+toMaybe True  = Just
+toMaybe False = const Nothing
 
 toPair :: [a] -> Maybe (a, a)
 toPair (x:y:[]) = Just (x, y)

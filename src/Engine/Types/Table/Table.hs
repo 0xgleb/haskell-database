@@ -2,8 +2,6 @@ module Engine.Types.Table.Table
 ( Row(..)
 , Table(..)
 , TableName
-, types
-, values
 , tableProduct
 , decodeTable
 ) where
@@ -11,7 +9,6 @@ module Engine.Types.Table.Table
 import Data.Binary
 import Data.Binary.Get (isEmpty)
 import qualified Data.ByteString.Lazy as BL
-import Data.List (foldl')
 
 import Engine.Types.Table.PolyType
 
@@ -24,33 +21,32 @@ instance Show Row where
     show (Row values) = show values
 
 type TableName = String
-data Table = Table [(String, AType)] [Row]
-    deriving Eq
-
-types :: Table -> [(String, AType)]
-types (Table tableTypes _) = tableTypes
-
-values :: Table -> [Row]
-values (Table _ tableValues) = tableValues
+data Table = Table { tableTypes  :: [(String, AType)]
+                   , primaryKeys :: [String]
+                   , tableValues :: [Row]
+                   } deriving Eq
 
 tableProduct :: [(String, Table)] -> Table
-tableProduct tables = Table (join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ types table) (map snd $ types table)) tables) 
-                            (map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unRow . values . snd) tables)
+tableProduct tables = Table { tableTypes  = join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ tableTypes table) (map snd $ tableTypes table)) tables
+                            , primaryKeys = join $ map (\(name, table) -> map ((++) $ name ++ ".") $ primaryKeys table) tables
+                            , tableValues = map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unRow . tableValues . snd) tables
+                            }
 
 decodeTable :: BL.ByteString -> Table
 decodeTable = decode
 
 instance Show Table where
-    show (Table tableTypes tableValues) = (show tableTypes) ++ (foldl' ((++) . (++ "\n")) "" (map show tableValues))
+    show (Table types pKeys values) = ("Primary keys: " ++ show pKeys ++ "\n") ++ (show types) ++ (foldl ((++) . (++ "\n")) "" $ map (show . unRow) values)
 
 instance Binary Table where
-    put (Table tableTypes tableValues) = put tableTypes >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unRow) tableValues)
+    put (Table types pKeys values) = put types >> put pKeys >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unRow) values)
 
-    get = do tableTypes <- get :: Get [(String, AType)]
-             tableValues <- getPolyTypes $ map snd tableTypes
-             return $ Table tableTypes tableValues
+    get = do types  <- get :: Get [(String, AType)]
+             pKeys  <- get :: Get [String]
+             values <- getPolyTypes $ map snd types
+             return $ Table types pKeys values
                  where
-                     getPolyTypes tableTypes = ifM isEmpty (return []) (((:) <$> (fmap Row $ getRow tableTypes)) <*> getPolyTypes tableTypes)
+                     getPolyTypes types = ifM isEmpty (return []) (((:) <$> (fmap Row $ getRow types)) <*> getPolyTypes types)
 
                      getRow (x:xs) = ((:) <$> getPolyType x) <*> getRow xs
                      getRow [] = return []
