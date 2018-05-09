@@ -6,6 +6,8 @@ module Engine.Functions.Table
 , where_
 , toPath
 , from
+, searchTable
+, search
 , to
 ) where
 
@@ -15,6 +17,7 @@ import Engine.Types.Table
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
+import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Except
 
 import Data.Maybe (maybeToList)
@@ -43,10 +46,17 @@ where_ :: ([(String, AType)] -> Row -> Bool) -> Table -> Table
 where_ f (Table types pKeys values) = Table types pKeys $ filter (f types) values
 
 from :: DBName -> [TableName] -> ExceptT Message IO Table
-from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM ((decodeTable <$>) . BL.readFile . toPath db) tables) `catchT` (throwE . exceptionHandler thisModule "from")
+from db tables = (lift $ fmap (tableProduct . zipWith (,) tables) $ mapM (fmap decodeTable . BL.readFile . toPath db) tables) `catchT` (throwE . exceptionHandler thisModule "from")
 
 getTableTypes :: DBName -> TableName -> ExceptT Message IO [(String, AType)]
 getTableTypes db table = (fmap tableTypes $ from db [table]) `catchT` (throwE . exceptionHandler thisModule "tableTypes")
+
+searchTable :: [PolyType] -> Table -> Maybe Row
+searchTable pkValues table = find (\r -> ) $ tableRows table
+
+search :: DBName -> TableName -> Row -> ExceptT Message (MaybeT IO) Row
+search = undefined
+-- search db table row = (lift $ MaybeT $ primKeysSearchTable row . decodeTable <$> (BL.readFile $ toPath db table)) `catchT` (throwE . exceptionHandler thisModule "search")
 
 to :: DBName -> TableName -> Row -> ExceptT Message IO ()
 to db table newData = if filter (== Invalid) (unRow newData) == []

@@ -23,7 +23,7 @@ instance Show Row where
 type TableName = String
 data Table = Table { tableTypes  :: [(String, AType)]
                    , primaryKeys :: [String]
-                   , tableValues :: [Row]
+                   , tableRows   :: [Row]
                    } deriving Eq
 
 tableProduct :: [(String, Table)] -> Table
