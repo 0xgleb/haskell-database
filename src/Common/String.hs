@@ -3,7 +3,7 @@ module Common.String
 , split
 ) where
 
-import Control.Monad
+import           Control.Monad
 
 rm :: Char -> String -> String
 rm target = join . split target

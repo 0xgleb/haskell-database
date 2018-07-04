@@ -4,8 +4,8 @@ module Engine.Types.Table.PolyType
 , module Engine.Types.Table.AType
 ) where
 
-import Engine.Types.Table.AType
-import Data.Binary
+import           Data.Binary
+import           Engine.Types.Table.AType
 
 data PolyType = PolyBool Bool | PolyInt Int | PolyFloat Float | PolyString String | Invalid
                 deriving (Eq, Ord)

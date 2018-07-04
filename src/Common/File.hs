@@ -1,16 +1,16 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Common.File 
+module Common.File
 ( update
 , delete
 ) where
 
-import Engine.Types.DB
-import Engine.Types.Table
-import Common.Exception
+import           Common.Exception
+import           Engine.Types.DB
+import           Engine.Types.Table
 
-import Foreign.C.Types
-import Foreign.C.String
+import           Foreign.C.String
+import           Foreign.C.Types
 
 foreign import ccall safe "file_methods.c"
     c_update :: CString -> CInt -> IO ()

@@ -1,4 +1,4 @@
-module Common.Exception 
+module Common.Exception
 ( module Control.Exception
 , module Control.Monad.Trans.Except
 , Message
@@ -8,9 +8,9 @@ module Common.Exception
 , printException
 ) where
 
-import Control.Monad.Trans
-import Control.Monad.Trans.Except
-import Control.Exception
+import           Control.Exception
+import           Control.Monad.Trans
+import           Control.Monad.Trans.Except
 
 type Message = String
 
@@ -28,4 +28,10 @@ catchT :: ExceptT a IO b -> (SomeException -> ExceptT a IO b) -> ExceptT a IO b
 catchT s handle = ExceptT $ (runExceptT s) `catch` (runExceptT . handle)
 
 exceptionHandler :: String -> String -> SomeException -> Message
-exceptionHandler excp_module function = (++) ("An error occured in module " ++ excp_module ++ " in function " ++ function ++ ": ") . show
+exceptionHandler excpModule function exception =
+    "An error occured in module "
+    ++ excpModule
+    ++ " in function "
+    ++ function
+    ++ ": "
+    ++ show exception

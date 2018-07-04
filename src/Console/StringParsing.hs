@@ -8,27 +8,14 @@ module Console.StringParsing
 , parseGetQuery
 ) where
 
-import Common.String
-import Common.Maybe
-import Control.Monad
-import Engine.Types.Table
-import Engine.Functions.Table
-import Data.List (foldl')
+import           Control.Monad
+import           Data.List              (foldl')
+import           Safe
 
-polyRead :: AType -> String -> PolyType
-polyRead BoolType   str = case reads str :: [(Bool,String)] of
-                                    [(x, "")] -> PolyBool x
-                                    _         -> Invalid
-polyRead IntType    str = case reads str :: [(Int,String)] of
-                                    [(x, "")] -> PolyInt x
-                                    _         -> Invalid
-polyRead FloatType  str = case reads str :: [(Float,String)] of
-                                    [(x, "")] -> PolyFloat x
-                                    _         -> Invalid
-polyRead StringType str = case reads str :: [(String,String)] of
-                                    [(x, "")] -> PolyString x
-                                    _         -> Invalid
-polyRead _ _ = Invalid
+import           Common.Maybe
+import           Common.String
+import           Engine.Functions.Table
+import           Engine.Types.Table
 
 parse :: [AType] -> [String] -> [PolyType]
 parse = zipWith polyRead
@@ -55,20 +42,34 @@ toBinOp "/=" = Just (/=)
 toBinOp _    = Nothing
 
 eval :: [(String, AType)] -> String -> Row -> PolyType
-eval types str = (readSomething str <|>) . maybePolyToPoly . (maybePolyToPoly . (safeHead <=< safeHead) . map unRow . tableValues <$>) . select [str] . Table types [] . return
+eval types str = (readSomething str <|>)
+               . maybePolyToPoly
+               . (maybePolyToPoly . (safeHead <=< safeHead) . map unRow . tableRows <$>)
+               . select [str]
+               . Table types []
+               . pure
     where maybePolyToPoly (Just x) = x
           maybePolyToPoly _        = Invalid
 
 parseGetQuery :: [(String, String)] -> Table -> Maybe Table
-parseGetQuery []                        = return
-parseGetQuery (("select", '(':rest):xs) = if last rest == ')' then parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest) else \_ -> Nothing
-parseGetQuery (("select", arg):xs)      = parseGetQuery xs >=> select [arg]
-parseGetQuery (("where", params):xs)    = case toTrine $ split ' ' $ init $ tail params of
-                                            Nothing        -> \_ -> Nothing
-                                            Just (x, o, y) -> case (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o of
-                                                                Nothing -> \_ -> Nothing 
-                                                                Just f  -> \table -> if (readSomething x /= Invalid || x `elem` map fst (tableTypes table)) 
-                                                                                     && (readSomething y /= Invalid || y `elem` map fst (tableTypes table))
-                                                                                              then (parseGetQuery xs >=> return . where_ f) table
-                                                                                              else Nothing
-parseGetQuery _ = \_ -> Nothing
+parseGetQuery [] = pure
+parseGetQuery (("select", '(':rest):xs) =
+    if last rest == ')' then parseGetQuery xs >=> select (split ',' $ rm ' ' $ init rest)
+                        else const Nothing
+parseGetQuery (("select", arg):xs) = parseGetQuery xs >=> select [arg]
+parseGetQuery (("where", params):xs) =
+    case toTrine $ split ' ' $ init $ tail params of
+        Nothing        -> const Nothing
+        Just (x, o, y) ->
+            case (\f t r -> f (eval t x r) (eval t y r)) <$> toBinOp o of
+                Nothing -> const Nothing
+                Just f  ->
+                    \table -> if (  readSomething x /= Invalid
+                                 || x `elem` map fst (tableTypes table)
+                                 ) &&
+                                 (  readSomething y /= Invalid
+                                 || y `elem` map fst (tableTypes table)
+                                 )
+                                 then (parseGetQuery xs >=> return . where_ f) table
+                                 else Nothing
+parseGetQuery _ = const Nothing

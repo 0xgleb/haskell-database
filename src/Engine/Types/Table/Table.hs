@@ -6,14 +6,13 @@ module Engine.Types.Table.Table
 , decodeTable
 ) where
 
-import Data.Binary
-import Data.Binary.Get (isEmpty)
-import qualified Data.ByteString.Lazy as BL
+import           Control.Monad               (join)
+import           Control.Monad.Extra         (ifM)
+import           Data.Binary
+import           Data.Binary.Get             (isEmpty)
+import qualified Data.ByteString.Lazy        as BL
 
-import Engine.Types.Table.PolyType
-
-import Control.Monad (join)
-import Control.Monad.Extra (ifM)
+import           Engine.Types.Table.PolyType
 
 newtype Row = Row { unRow :: [PolyType] } deriving (Eq, Ord)
 
@@ -21,37 +20,53 @@ instance Show Row where
     show (Row values) = show values
 
 type TableName = String
-data Table = Table { tableTypes  :: [(String, AType)]
-                   , primaryKeys :: [String]
-                   , tableRows   :: [Row]
-                   } deriving Eq
+data Table =
+    Table { tableTypes  :: [(String, AType)]
+          , primaryKeys :: [String]
+          , tableRows   :: [Row]
+          } deriving Eq
 
 tableProduct :: [(String, Table)] -> Table
-tableProduct tables = Table { tableTypes  = join $ map (\(name, table) -> zip (map ((++) (name ++ ".") . fst) $ tableTypes table) (map snd $ tableTypes table)) tables
-                            , primaryKeys = join $ map (\(name, table) -> map ((++) $ name ++ ".") $ primaryKeys table) tables
-                            , tableValues = map Row $ foldl (\xs ys -> [x ++ y | x <- xs, y <- ys]) [[]] $ map (map unRow . tableValues . snd) tables
-                            }
+tableProduct tables =
+    Table { tableTypes = tables >>= \(name, table) ->
+              (map ((++) (name ++ ".") . fst) $ tableTypes table) `zip` (snd <$> tableTypes table)
+              
+          , primaryKeys = tables >>= (\(name, table) -> ((++) $ name ++ ".") <$> primaryKeys table)
+          
+          , tableRows = Row <$> foldl (\xs ys -> [x ++ y | x <- xs, y <- ys])
+                                      [[]]
+                                      (map unRow . tableRows . snd <$> tables)
+          }
 
 decodeTable :: BL.ByteString -> Table
 decodeTable = decode
 
 instance Show Table where
-    show (Table types pKeys values) = ("Primary keys: " ++ show pKeys ++ "\n") ++ (show types) ++ (foldl ((++) . (++ "\n")) "" $ map (show . unRow) values)
+    show (Table types pKeys values) =
+           ("Primary keys: " ++ show pKeys ++ "\n")
+        ++ (show types)
+        ++ (foldl ((++) . (++ "\n")) "" $ map (show . unRow) values)
 
 instance Binary Table where
-    put (Table types pKeys values) = put types >> put pKeys >> foldl (>>) mempty (map (foldl (>>) mempty . map put . unRow) values)
+    put (Table types pKeys values) = do
+        put types
+        put pKeys
+        foldl (>>) mempty $ foldl (>>) mempty . map put . unRow <$> values
 
-    get = do types  <- get :: Get [(String, AType)]
-             pKeys  <- get :: Get [String]
-             values <- getPolyTypes $ map snd types
-             return $ Table types pKeys values
-                 where
-                     getPolyTypes types = ifM isEmpty (return []) (((:) <$> (fmap Row $ getRow types)) <*> getPolyTypes types)
+    get = do types <- get
+             pKeys <- get
+             rows  <- getTableData $ snd <$> types
+             pure $ Table types pKeys rows
+             
+        where getTableData :: [AType] -> Get [Row]
+              getTableData types =
+                  ifM isEmpty (pure []) $ (:) <$> getRowData types <*> getTableData types
 
-                     getRow (x:xs) = ((:) <$> getPolyType x) <*> getRow xs
-                     getRow [] = return []
+              getRowData :: [AType] -> Get Row
+              getRowData types = Row <$> mapM getPolyType types
 
-                     getPolyType BoolType   = (get :: Get Bool)   >>= return . PolyBool
-                     getPolyType IntType    = (get :: Get Int)    >>= return . PolyInt
-                     getPolyType FloatType  = (get :: Get Float)  >>= return . PolyFloat
-                     getPolyType StringType = (get :: Get String) >>= return . PolyString
+              getPolyType :: AType -> Get PolyType
+              getPolyType BoolType   = PolyBool   <$> get
+              getPolyType IntType    = PolyInt    <$> get
+              getPolyType FloatType  = PolyFloat  <$> get
+              getPolyType StringType = PolyString <$> get

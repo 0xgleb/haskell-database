@@ -24,10 +24,12 @@ spec = do
                 select ["invalid"]          table `shouldBe` Nothing
     describe "searchTable" $ do
         it "returns Just Row if contains a row with the given primary keys" $ do
-            searchTable [PolyString "str1"] table `shouldBe` Just (Row [PolyInt 11, PolyString "str1"])
-            searchTable [PolyString "str2"] table `shouldBe` Just (Row [PolyInt 22, PolyString "str2"])
+            searchTable [PolyInt 11] table `shouldBe` Just (Row [PolyInt 11, PolyString "str1"])
+            searchTable [PolyInt 22] table `shouldBe` Just (Row [PolyInt 22, PolyString "str2"])
         it "returns Nothing if an invalid set of primary keys was given" $ do
             searchTable [] table `shouldBe` Nothing
+            searchTable [PolyString "str1"] table `shouldBe` Nothing
+            searchTable [PolyString "str2"] table `shouldBe` Nothing
             searchTable [PolyInt 5] table `shouldBe` Nothing
             searchTable [PolyInt 22, PolyString "str2"] table `shouldBe` Nothing
         it "returns Nothing if it couldn't find a matching row" $ do

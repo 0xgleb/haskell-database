@@ -4,13 +4,13 @@ module Server.Main
 ( server
 ) where
 
-import qualified Control.Concurrent as Conc
-import qualified Control.Exception  as Exc
-import Control.Monad
+import qualified Control.Concurrent             as Conc
+import qualified Control.Exception              as Exc
+import           Control.Monad
 
-import qualified Data.Text            as Text
-import qualified Data.ByteString.Lazy as BL
-import Data.Binary
+import           Data.Binary
+import qualified Data.ByteString.Lazy           as BL
+import qualified Data.Text                      as Text
 
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai

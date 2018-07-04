@@ -1,5 +1,5 @@
-module Console 
+module Console
 ( module Console.App
 ) where
 
-import Console.App
+import           Console.App

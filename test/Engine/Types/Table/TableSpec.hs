@@ -33,7 +33,7 @@ spec = do
             property $ \(Table types pKeys values) -> tableTypes (Table types pKeys values) == types
     describe "values" $ do
         it "takes Table and returns list of rows" $ do
-            property $ \(Table types pKeys values) -> tableValues (Table types pKeys values) == values
+            property $ \(Table types pKeys values) -> tableRows (Table types pKeys values) == values
     describe "instance Binary Table" $ do
         it "holds on property decode . encode == id" $
             property $ \x -> length (tableTypes x) /= 0 ==> (decode (encode x) :: Table) == x

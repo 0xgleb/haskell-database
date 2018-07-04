@@ -3,5 +3,5 @@ module Engine.Types.Table
 , module Engine.Types.Table.Table
 ) where
 
-import Engine.Types.Table.PolyType
-import Engine.Types.Table.Table
+import           Engine.Types.Table.PolyType
+import           Engine.Types.Table.Table

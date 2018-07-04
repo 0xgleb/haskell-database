@@ -3,7 +3,7 @@ module Engine.Types.Table.AType
 , possibleTypes
 ) where
 
-import Data.Binary
+import           Data.Binary
 
 possibleTypes :: [AType]
 possibleTypes = [BoolType, IntType, FloatType, StringType]

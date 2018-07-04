@@ -36,11 +36,11 @@ int update(char *file_name, long byte, size_t len, uint8_t *data) {
 
     fclose(file_ptr);
 
-    return SUCCESS; 
+    return SUCCESS;
 }
 
-int delete(char *file_name, int byte, int len) { 
+int delete(char *file_name, int byte, int len) {
     FILE *file_ptr;
 
-    return 1; 
+    return 1;
 }

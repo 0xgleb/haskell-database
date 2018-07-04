@@ -2,4 +2,4 @@ module Server
 ( module Server.Main
 ) where
 
-import Server.Main
+import           Server.Main
