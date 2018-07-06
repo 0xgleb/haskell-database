@@ -8,7 +8,7 @@ maintainer:          gleb.dianov@utcreading.org.uk
 copyright:           2017 Gleb Dianov
 category:            Database
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:  README.org
 cabal-version:       >=1.10
 
 library

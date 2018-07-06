@@ -1,0 +1,101 @@
+* Haskell database
+
+This project is a simple relational database. It has a console that you can use to create/destroy databases, create/drop tables within databases, insert data into them, and read data from tables that are in the same database. I was planning to implement a server for managing databases and add functions for deleting and updating data in tables, but never did. It is also the first project I've written in Haskell, which is why it uses lazy IO and something like conduit. Here is an example of what you can do in the console.
+
+#+BEGIN_SRC 
+$ stack exec haskell-database
+db -> ls
+["another-database","new_database"]
+db -> use new_database
+new_database => ls
+[]
+new_database => create user id:Int, name : String, developer: Bool # id
+()
+new_database => ls
+["user"]
+new_database => insert user 1, "Gleb", True
+()
+new_database => insert user 1, "John", False
+Primary key is not unique!
+new_database => insert user 2, "John", False
+()
+new_database => ls
+["user"]
+new_database => read user
+Primary keys: ["user.id"]
+[("user.id",IntType),("user.name",StringType),("user.developer",BoolType)]
+[1,"Gleb",True]
+[2,"John",False]
+new_database => insert user 3, "Mike", True
+()
+new_database => create project developer_id:Int, name:String # id, name
+Invalid types and/or primary keys list!
+Types: [("developer_id",IntType),("name",StringType)]
+Primary Keys: ["id","name"]
+new_database => create project developer_id:Int, name:String # developer_id, name
+()
+new_database => insert project 1, "haskell-database"
+()
+new_database => insert project 1, "haskell-database"
+Primary key is not unique!
+new_database => insert project 1, "shmup"
+()
+new_database => insert project 2, "project name"
+()
+new_database => insert project 3, "ghc"
+()
+new_database => read project
+Primary keys: ["project.developer_id","project.name"]
+[("project.developer_id",IntType),("project.name",StringType)]
+[1,"haskell-database"]
+[1,"shmup"]
+[2,"project name"]
+[3,"ghc"]
+new_database => select#project.name from#project
+Primary keys: ["project.name"]
+[("project.name",StringType)]
+["haskell-database"]
+["shmup"]
+["project name"]
+["ghc"]
+new_database => where#(project.developer_id == 1) from#project
+Primary keys: ["project.developer_id","project.name"]
+[("project.developer_id",IntType),("project.name",StringType)]
+[1,"haskell-database"]
+[1,"shmup"]
+new_database => select#error from#project
+Invalid query!
+new_database => select#(user.name, project.name) where#(user.id == project.developer_id) where#(user.developer == True) from#project,user
+Primary keys: ["project.name"]
+[("user.name",StringType),("project.name",StringType)]
+["Gleb","haskell-database"]
+["Gleb","shmup"]
+["Mike","ghc"]
+new_database => select#(user.name, project.name) from#user,something   
+One or more tables doesn't exist!
+new_database => exit
+Exiting...
+db -> ls
+["another-database","new_database"]
+db -> use another-database
+another-database => ls
+[]
+another-database => create test id:Int # id
+()
+another-database => create another-test id : Int  
+Invalid types and/or primary keys list!
+Types: [("id",IntType)]
+Primary Keys: [""]
+another-database => drop test
+()
+another-database => ls
+[]
+another-database => exit
+Exiting...
+db -> destroy another-database
+()
+db -> ls
+["new_database"]
+db -> exit
+Exiting...
+#+END_SRC
