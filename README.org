@@ -1,9 +1,15 @@
 * Haskell database
 
-This project is a simple relational database. It has a console that you can use to create/destroy databases, create/drop tables within databases, insert data into them, and read data from tables that are in the same database. I was planning to implement a server for managing databases and add functions for deleting and updating data in tables, but never did. It is also the first project I've written in Haskell, which is why it uses lazy IO and something like conduit. Here is an example of what you can do in the console.
+This project is a simple relational database. It has a console that you can use to create/destroy databases, create/drop tables within databases, insert data into them, and read data from tables that are in the same database. I was planning to implement a server for managing databases and add functions for deleting and updating data in tables, but never did. It is also the first project I've written in Haskell, which is why I didn't use a parsing library and used lazy IO and not something like conduit. Here is an example of what you can do in the console.
 
 #+BEGIN_SRC 
 $ stack exec haskell-database
+db -> ls
+[]
+db -> create new_database
+"new_database"
+db -> create another-database
+"another-database"
 db -> ls
 ["another-database","new_database"]
 db -> use new_database
@@ -19,8 +25,6 @@ new_database => insert user 1, "John", False
 Primary key is not unique!
 new_database => insert user 2, "John", False
 ()
-new_database => ls
-["user"]
 new_database => read user
 Primary keys: ["user.id"]
 [("user.id",IntType),("user.name",StringType),("user.developer",BoolType)]
@@ -94,6 +98,8 @@ another-database => exit
 Exiting...
 db -> destroy another-database
 ()
+db -> destroy another-database
+This database doesn't exist!
 db -> ls
 ["new_database"]
 db -> exit
