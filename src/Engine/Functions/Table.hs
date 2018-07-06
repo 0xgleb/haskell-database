@@ -7,6 +7,9 @@ module Engine.Functions.Table
 , where_
 , toPath
 , from
+, readTable
+, PrimaryKeyValues(..)
+, getPKValues
 , searchTable
 , search
 , to
@@ -59,21 +62,28 @@ where_ :: ([(String, AType)] -> Row -> Bool) -> Table -> Table
 where_ f (Table types pKeys values) = Table types pKeys $ filter (f types) values
 
 from :: DBName -> [TableName] -> ExceptT Message IO Table
-from db tables =
-    ( lift $ fmap (tableProduct . zipWith (,) tables)
-           $ mapM (fmap decodeTable . BL.readFile . toPath db)
-           tables
-    ) `catchT` (throwE . exceptionHandler thisModule "from")
+from db tables = ((tableProduct . zip tables) <$> mapM (readTable db) tables)
+                 `catchT` (throwE . exceptionHandler thisModule "from")
+
+readTable :: DBName -> TableName -> ExceptT Message IO Table
+readTable db table = (lift $ fmap decodeTable $ BL.readFile $ toPath db table)
+                     `catchT` (throwE . exceptionHandler thisModule "readTable")
 
 getTableTypes :: DBName -> TableName -> ExceptT Message IO [(String, AType)]
 getTableTypes db table = (fmap tableTypes $ from db [table])
                          `catchT` (throwE . exceptionHandler thisModule "getTableTypes")
 
-searchTable :: [PolyType] -> Table -> Maybe Row
-searchTable pkValues table =
-    headMay $ filter (\row -> getPKValues row == pure (Row pkValues)) $ tableRows table
-    where getPKValues =
-            select (primaryKeys table) . Table (tableTypes table) [] . pure >=> headMay . tableRows
+
+newtype PrimaryKeyValues = PrimaryKeyValues { unPKV :: [PolyType] } deriving (Eq, Show)
+
+getPKValues :: Table -> [(Row, PrimaryKeyValues)]
+getPKValues table = zip (tableRows table)
+                  $ fmap (PrimaryKeyValues . unRow)
+                  $ maybe [] tableRows
+                  $ select (primaryKeys table) table
+
+searchTable :: PrimaryKeyValues -> Table -> Maybe Row
+searchTable pkValues table = fmap fst $ headMay $ filter ((== pkValues) . snd) $ getPKValues table
 
 search :: DBName -> TableName -> Row -> ExceptT Message (MaybeT IO) Row
 search = undefined
@@ -84,9 +94,15 @@ to db table newData =
     if filter (== Invalid) (unRow newData) == []
        then (lift $ BL.appendFile (toPath db table) (BL.concat $ map encode $ unRow newData))
             `catchT` (throwE . exceptionHandler thisModule "to")
-       else throwE "Engine.Functions.Table.to: Cannot add invalid data!"
+       else throwE "Cannot add invalid data!"
 
 insert :: DBName -> TableName -> [String] -> ExceptT Message IO ()
-insert db table strs = do
-    types <- fmap snd <$> getTableTypes db table
-    to db table $ seq types $ Row $ zipWith polyRead types strs
+insert db tableName strs = do
+    table <- readTable db tableName
+    let types = tableTypes table
+        primaryKeyValues = fmap snd $ getPKValues $ table
+        newRow = seq types $ Row $ zipWith polyRead (fmap snd types) strs
+        newRowPKV = snd (head $ getPKValues $ Table types (primaryKeys table) [newRow])
+    if (newRowPKV `elem` seq (length primaryKeyValues) primaryKeyValues)
+       then throwE "Primary key is not unique!"
+       else to db tableName newRow

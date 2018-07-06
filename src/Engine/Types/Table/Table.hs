@@ -20,6 +20,7 @@ instance Show Row where
     show (Row values) = show values
 
 type TableName = String
+
 data Table =
     Table { tableTypes  :: [(String, AType)]
           , primaryKeys :: [String]
@@ -30,9 +31,9 @@ tableProduct :: [(String, Table)] -> Table
 tableProduct tables =
     Table { tableTypes = tables >>= \(name, table) ->
               (map ((++) (name ++ ".") . fst) $ tableTypes table) `zip` (snd <$> tableTypes table)
-              
+
           , primaryKeys = tables >>= (\(name, table) -> ((++) $ name ++ ".") <$> primaryKeys table)
-          
+
           , tableRows = Row <$> foldl (\xs ys -> [x ++ y | x <- xs, y <- ys])
                                       [[]]
                                       (map unRow . tableRows . snd <$> tables)
@@ -57,7 +58,7 @@ instance Binary Table where
              pKeys <- get
              rows  <- getTableData $ snd <$> types
              pure $ Table types pKeys rows
-             
+
         where getTableData :: [AType] -> Get [Row]
               getTableData types =
                   ifM isEmpty (pure []) $ (:) <$> getRowData types <*> getTableData types

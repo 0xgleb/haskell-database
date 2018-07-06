@@ -23,7 +23,6 @@ thisModule = "Console.DBConsole"
 
 getQuery :: DBName -> [(String, String)] -> [TableName] -> ExceptT Message IO Table
 getQuery db args targets = do
-    liftIO $ print args
     ((maybeToExceptT . parseGetQuery args) =<< from db targets)
     `catchT` (throwE . exceptionHandler thisModule "getQuery")
     where maybeToExceptT Nothing  = throwE "Invalid query!"
@@ -87,14 +86,15 @@ executeTableCommand db args =
           _ -> do
               case traverse (toPair . split '#') args of
                   Nothing -> putStrLn "Invalid query!"
-                  (Just tuples) -> do
-                      case (fst $ last tuples) of
-                          "from" -> do
-                              printExceptT $ getQuery db (init tuples)
-                                           $ rmDuplicates $ split ',' $ snd $ last tuples
-                          _ ->
-                              putStrLn "Invalid query!"
-              next
+                  (Just tuples) -> case (fst $ last tuples) of
+                      "from" -> do
+                          let tableNames = rmDuplicates $ split ',' $ snd $ last tuples
+                          exist <- all id <$> mapM (doesFileExist . toPath db) tableNames
+                          consoleAction exist (printExceptT $ getQuery db (init tuples) tableNames)
+                                              (putStrLn "One or more tables doesn't exist!")
+                      _ -> do
+                          putStrLn "Invalid query!"
+                          next
 
     where next :: IO ()
           next = do runExceptT (workWithDB db)
